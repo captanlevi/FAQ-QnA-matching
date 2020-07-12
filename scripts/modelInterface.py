@@ -16,7 +16,14 @@ from sentence_transformers.evaluation import TripletEvaluator
 
 
 class modelInterface:
-    def __init__(self, model_path):
+    def __init__(self, model_path = None):
+        """ 
+        Either mention the model path to previously saved model ,
+        or let it be , none
+        when model path is None , the model will be a transformer model, with roBERTa base
+        """
+        if(model_path == None):
+            model_path = 'roberta-base-nli-mean-tokens'
         self.model = SentenceTransformer(model_path)
         self.current_faq = {}
         # current data is to be filled using the fit_FAQ function call
