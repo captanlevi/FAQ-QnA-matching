@@ -23,13 +23,22 @@ class modelInterface:
         when model path is None , the model will be a transformer model, with roBERTa base
         """
         if(model_path == None):
-            model_path = 'roberta-base-nli-mean-tokens'
+            model_path = 'roberta-base-nli-stsb-mean-tokens'
         self.model = SentenceTransformer(model_path)
         self.current_faq = {}
         # current data is to be filled using the fit_FAQ function call
         # it has 3 keys 1) embeddings  (a np array) 2) labels 3) label_to_answer dict
     def train(self,data, model_save_path):
         """
+
+        questions = ['Q1', 'Q2', 'Q3', ....]
+        labels = [1,2,3,1,4,8,9,10]
+
+        generated_ques = {'Q1' : ['GQ1-1', 'GQ1-2', ...] , 'Q2' : ['GQ2-1', ...]}
+        bs : 32
+        n : 4
+
+        model_save_path : './models/model_first'
         data --> a dict {'questions' : list of questions , 'labels': 'list of labels',
                         'generated_ques': dict mapping from question(string) to an list of generated_questions
                         'bs': batch_size for training
@@ -128,10 +137,19 @@ class modelInterface:
 
     def fit_FAQ(self,question_to_label , answer_to_label, labels = None):
         """
+        dataset
+        Q1 --> A1
+        Q2 --> A1 ....
+
+        dct1 --> {'Q1' : 1, 'Qn': 1}
+
+        dct2 --> {'A1': 1}
+
         A function to fit any given FAQ
         data is a dict, has keys
-            1) questions --> a dict ('string question' : label)
-            2) answers --> a dict ('string answer' : label)
+            1) question_to_label --> a dict ('string question' : label)
+            2) answer_to_label --> a dict ('string answer' : label)
+        
         """
 
         questions = []
