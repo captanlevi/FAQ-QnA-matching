@@ -25,7 +25,7 @@ class modelInterface:
         if(model_path == None):
             model_path = 'roberta-base-nli-stsb-mean-tokens'
         self.model = SentenceTransformer(model_path)
-        self.current_faq = {}
+        self.current_faq = None
         # current data is to be filled using the fit_FAQ function call
         # it has 3 keys 1) embeddings  (a np array) 2) labels 3) label_to_answer dict
     def train(self,data, model_save_path):
