@@ -67,7 +67,7 @@ class Question_sampler(Dataset):
             self.data[self.labels[i]] += [que] + generated_ques[que]
              
         self.sequence = []
-        self.make_sequence(total_examples = len(questions)*3, batch_size = bs,n = n)
+        self.make_sequence(total_examples = len(questions), batch_size = bs,n = n)
     def __len__(self):
         return len(self.sequence[0])
     
@@ -156,9 +156,9 @@ def get_dataloader(questions,generated_ques,model,labels = None, bs = 32 , n = 4
         n  --> number of classes to pick , from 
     """
 
-    Q = Question_sampler(questions ,generated_ques,model,labels)
+    Q = Question_sampler(questions ,generated_ques,model,labels, bs = bs , n = n)
     train_data = Q
-    train_dataloader = DataLoader(train_data,  batch_size= 32, sampler= SequentialSampler(train_data))
+    train_dataloader = DataLoader(train_data,  batch_size= bs, sampler= SequentialSampler(train_data))
     return train_dataloader
 
 
