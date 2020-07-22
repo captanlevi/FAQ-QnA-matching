@@ -135,7 +135,7 @@ class modelInterface:
 
     
 
-    def fit_FAQ(self,question_to_label , answer_to_label, labels = None):
+    def fit_FAQ(self,question_to_label , answer_to_label):
         """
         dataset
         Q1 --> A1
@@ -168,6 +168,7 @@ class modelInterface:
             label_to_answer[label] = answer
 
             if(label not in labels):
+                print("{} label present in answer but not in question".format(label))
                 warnings.warn('some labels in answers are not present in questions , you might not have labels in Sync')
             
         for l in labels:
