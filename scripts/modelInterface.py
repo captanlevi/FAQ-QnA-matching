@@ -180,7 +180,7 @@ class modelInterface:
         self.current_faq  = {'embeddings' : self.model.encode(questions) , 'labels': labels, 'label_to_answer': label_to_answer}
 
 
-    def answer_question(self, question):
+    def answer_question(self, question, K = 1 , cutoff = .3):
         """
             This is where you ask the question , and a approropriate answer is returned,
             must call fit_FAQ before this
@@ -201,17 +201,39 @@ class modelInterface:
         cosine_sim = self.cosine_sim(question, embeddings)[0]
         #cosine_sim --> shape (N,)
 
-        max_ind = np.argmax(cosine_sim)
+        cosine_sim = cosine_sim.tolist()
+        inds = [x for x in range(len(cosine_sim))]
+        inds.sort(reverse = True, key = lambda x : cosine_sim[x])
+        inds = inds[:K]
+        # we need to pick the top k answers
 
-        max_val = cosine_sim[max_ind]
+        max_val = cosine_sim[inds[0]]
         print(max_val)
-        if(max_val < .2):
+        if(max_val < cutoff):
             return "out of set question"
-        else:
-            label = question_labels[max_ind]
-            if(label not in label_to_answer):
-                return 'No answer corrosponding to the label {} , this means your question--label--answer dict is faulty '.format(label)
-            return label_to_answer[label]        
+        
+        labels = [question_labels[x] for x in inds]
+        majority  = {}
+
+        for label in labels:
+            if(label not in majority):
+                majority[label] = 0
+
+            majority[label] += 1    
+        
+        cnt = -1
+        ans = -1
+
+        for label, count in majority.items():
+            if(count > cnt):
+                cnt = count
+                ans = label
+                
+
+
+        if(label not in label_to_answer):
+            return 'No answer corrosponding to the label {} , this means your question--label--answer dict is faulty '.format(label)
+        return label_to_answer[label]        
 
 
 
