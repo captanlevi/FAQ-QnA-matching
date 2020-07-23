@@ -177,7 +177,7 @@ class modelInterface:
             
 
 
-        self.current_faq  = {'embeddings' : self.model.encode(questions) , 'labels': labels, 'label_to_answer': label_to_answer}
+        self.current_faq  = {'embeddings' : self.model.encode(questions) , 'labels': labels, 'label_to_answer': label_to_answer, 'question_to_label' : question_to_label}
 
 
     def answer_question(self, question, K = 1 , cutoff = .3):
@@ -194,6 +194,7 @@ class modelInterface:
         embeddings = self.current_faq['embeddings']
         question_labels = self.current_faq['labels']
         label_to_answer = self.current_faq['label_to_answer']
+        question_to_label = self.current_faq['question_to_label']
 
         question = self.model.encode([question])[0].reshape(1,-1)
         # question is now a np.ndarray of shape (1,embedding_dim)
@@ -228,11 +229,16 @@ class modelInterface:
             if(count > cnt):
                 cnt = count
                 ans = label
-                
 
 
+
+       
         if(label not in label_to_answer):
             return 'No answer corrosponding to the label {} , this means your question--label--answer dict is faulty '.format(label)
+        
+        for que, lab in question_to_label.items():
+            if(lab == label):
+                print("Answering {}".format(que))
         return label_to_answer[label]        
 
 
