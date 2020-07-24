@@ -12,23 +12,171 @@ from utils import get_dataloader
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers import losses
 from sentence_transformers.evaluation import TripletEvaluator
+import nlpaug
+import nlpaug.augmenter.char as nac
+import nlpaug.augmenter.word as naw
+import random
+import pickle
+
+def save_dict(obj, path ):
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_dict(path):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+class AUG():
+    def __init__(self):
+        aug0 = naw.RandomWordAug()
+        aug1 = naw.ContextualWordEmbsAug(model_path='bert-base-uncased', action="substitute")
+        aug2 = naw.SynonymAug(aug_src='wordnet')
+        aug3 = naw.SplitAug()
+        aug4 = naw.ContextualWordEmbsAug(model_path='bert-base-uncased', action="insert")
+
+        self.augs = [aug0, aug1,aug2,aug3,aug4]
+        
+    def __call__(self,sent,n= 1):
+        return self.augment(sent,n)
+        
+    
+    def augment(self,sent ,n = 1):
+        ans = []
+        sent = re.sub(r'[^a-zA-Z0-9_ ]', '', sent)
+        for _ in range(n):
+            aug = random.choice(self.augs)
+            ans.append(aug.augment(sent))
+                    
+        return ans
 
 
 
 class modelInterface:
-    def __init__(self, model_path = None):
+    def __init__(self, faq_name ,faq_data = None,model_path = None):
         """ 
         Either mention the model path to previously saved model ,
         or let it be , none
         when model path is None , the model will be a transformer model, with roBERTa base
+
+        faq_name is the name of the faq , generated questions and answers , if it already exists , we will used the
+        processed questions and answers , otherwise , we have to create a new one
+
+        if faq name , has not been processed atleast once , you must provide faq_data
+        faq_data --> dict has two keys , question_to_label , and answer_to_label
+
+        1) question_to_label
+        2) answer_to_label
+
+        question_to_labels is again a dictionary from questions : label(int)  can have multiple questions for same label
+        answer_to_labels is a dictionary from answers to label : one label per answer (strict !!!)
         """
         if(model_path == None):
             model_path = 'roberta-base-nli-stsb-mean-tokens'
+
         self.model = SentenceTransformer(model_path)
         self.current_faq = None
+        self.faq_path = os.path.join("FAQs", faq_name) 
+        self.augment_rushi = AUG()
+        self.question_to_label = {} # contans all the augmented and orignal questions mapped to their labels
+        self.answer_to_label = {} #  contains mapping form answer to labels
         # current data is to be filled using the fit_FAQ function call
         # it has 3 keys 1) embeddings  (a np array) 2) labels 3) label_to_answer dict
-    def train(self,data, model_save_path):
+
+        if(self.check_faq_path()):
+            print("found preexisiting faq data , loading dicts from the same")
+            que_path = os.path.join(self.faq_path, "questions.pkl")
+            self.question_to_label = load_dict(que_path)
+            
+            ans_path = os.path.join(self.faq_path, "answers.pkl")
+            self.answer_to_label = load_dict(ans_path)
+
+        else:
+            assert not faq_data is None , "Did not find and preexisting of {} so you must provide faq_data".format(faq_name)
+            self.make_faq(faq_data)
+            
+    
+    def check_faq_path(self):
+        if(os.path.exists(self.faq_path) == False):
+            return False
+
+        files = [ "questions.pkl" ,  "answers.pkl"]
+
+        for f in files:
+            pth = os.path.join(self.faq_path, f)
+            if(not os.path.exists(pth)):
+                return False
+        return True
+
+    def destroy_faq(self):
+        if(os.path.exists(self.faq_path) == False):
+            return
+        
+        files = [ "questions.pkl" ,  "answers.pkl"]
+
+        for f in files:
+            pth = os.path.join(self.faq_path, f)
+            if(os.path.exists(pth)):
+                os.remove(pth)
+        os.rmdir(self.faq_path)
+
+
+    def make_faq(self,FAQ):
+        """
+        FAQ is a dictionary has 2 keys.....
+        1) question_to_label
+        2) answer_to_label
+
+        question_to_labels is again a dictionary from questions : label(int)  can have multiple questions for same label
+        answer_to_labels is a dictionary from answers to label : one label per answer (strict !!!)
+        """
+        self.destroy_faq()
+        os.mkdir(self.faq_path)
+        question_to_label  = FAQ['question_to_label']
+        answer_to_label = FAQ['answer_to_label']
+
+        q_labels = set()
+        a_labels = set()
+
+        for q , l in question_to_label.items():
+            q_labels.add(l)
+        
+
+        for a, l in answer_to_label.items():
+
+            if(l not in q_labels):
+                warnings.warn("Some labels in answers are not in the questions, these answers will never be a part of answers from the FAQ !!!")
+                print("label {} not in questions".format(l))
+
+        
+        aug_question_to_label = dict()
+        
+        for q,l in question_to_label.items():
+            # Damien , here also incorporate the other pipeline ....
+            gen_ques = []#self.augment_rushi(q,10)
+            # gen_ques are generated questions , a list , you need to append other gengerated ques to this list
+            """
+                invoke your function for augmentation pipeline here....
+                and append results to the gen_ques list..
+
+                Thank you
+            """
+            aug_question_to_label[q] = l
+            for a_q in gen_ques:
+                aug_question_to_label[a_q] = l
+            #  note that ifthe augmentation yields the same question, as a result it will not be added....
+
+        self.question_to_label = aug_question_to_label
+        self.answer_to_label = answer_to_label
+        save_dict(self.question_to_label, os.path.join(self.faq_path,"questions.pkl"))
+        save_dict(self.answer_to_label , os.path.join(self.faq_path, 'answers.pkl'))
+
+                
+
+
+
+
+    
+    def train(self,model_save_path, data =None):
         """
 
         questions = ['Q1', 'Q2', 'Q3', ....]
@@ -39,8 +187,7 @@ class modelInterface:
         n : 4
 
         model_save_path : './models/model_first'
-        data --> a dict {'questions' : list of questions , 'labels': 'list of labels',
-                        'generated_ques': dict mapping from question(string) to an list of generated_questions
+        data --> a dict {'question_to_label' : mapping from question to label,
                         'bs': batch_size for training
                         'n' : num_of_classes to sample in a batch (bs%n ==0), 
                         }
@@ -48,7 +195,14 @@ class modelInterface:
 
         This function will fit you data using a batch hard triplet loss, and save the model to the folder specified
         the folder should be empty or not created in the  beginning!!!
+
+        if data is NONE 
+        we will just use the presaved data
         """
+        if(data is None):
+            data = {'question_to_label' : self.question_to_label ,"bs": 32 , "n" : 4}
+            
+
         data['model'] = self.model
         train_dataloader = get_dataloader(**data)
         train_loss = losses.BatchHardTripletLoss(sentence_embedder=self.model)
@@ -135,7 +289,7 @@ class modelInterface:
 
     
 
-    def fit_FAQ(self,question_to_label , answer_to_label):
+    def fit_FAQ(self,question_to_label = None , answer_to_label = None):
         """
         dataset
         Q1 --> A1
@@ -150,7 +304,14 @@ class modelInterface:
             1) question_to_label --> a dict ('string question' : label)
             2) answer_to_label --> a dict ('string answer' : label)
         
+
+        if you provide None , then it will just use the data stored in the current faqs name
+
         """
+        if(question_to_label is None):
+            question_to_label = self.question_to_label
+        if(answer_to_label is None):
+            answer_to_label = self.answer_to_label
 
         questions = []
         labels = []

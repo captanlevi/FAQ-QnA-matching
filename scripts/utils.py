@@ -39,35 +39,26 @@ class InputExample:
 
 
 class Question_sampler(Dataset): 
-    def __init__(self,questions,generated_ques,model,labels = None, bs = 32 , n = 4):
+    def __init__(self,question_to_label,model, bs = 32 , n = 4):
         """
-        questions --> array of string
-        labels --> array of labels
-        generated_ques --> a dict from ques to array of generated ques
+        question_to_label --> a dict from questions mapping to label
         bs --> batch size
         n  --> number of classes to pick , from 
         """
        
-        self.questions = questions
-        if(labels is None):
-            labels = [x for x in range(len(questions))]
-            
-        assert len(questions) == len(labels), 'length of ques is {} but len of labels is {}'.format(len(questions), len(labels))
-        self.labels = labels
-        
+        self.question_to_label = question_to_label
         self.model = model
         self.data = {}
         # data is a dict from label to array of questions
-        self.min_gen = 100000000000
-        self.classes = len(set(self.labels))
-        for i,que in enumerate(questions):
-            self.min_gen = min(self.min_gen , len(generated_ques[que]))
-            if(self.labels[i] not in self.data):
-                self.data[self.labels[i]] = []
-            self.data[self.labels[i]] += [que] + generated_ques[que]
+        for q,l in self.question_to_label.items():
+            if(l not in self.data):
+                self.data[l] = []
+            self.data[l].append(q)
              
         self.sequence = []
-        self.make_sequence(total_examples = len(questions), batch_size = bs,n = n)
+        self.classes  = len(self.data)
+        self.labels = list(self.data.keys())
+        self.make_sequence(total_examples = len(question_to_label)//3, batch_size = bs,n = n)
     def __len__(self):
         return len(self.sequence[0])
     
@@ -81,7 +72,7 @@ class Question_sampler(Dataset):
         returns a pair of triplet
         [Anchor , positive , negative]
         """
-        total_ques = len(self.questions)
+        total_ques = len(self.question_to_label)
         anchor_data_index,neg_data_index = np.random.choice(len(self.data), size = 2,replace = False).tolist()
         pos_list = self.data[anchor_data_index]
         anchor_index , pos_index = np.random.choice(len(pos_list), size = 2,replace = False).tolist()
@@ -147,16 +138,14 @@ class Question_sampler(Dataset):
         self.sequence = [batch_inps, torch.tensor(batch_labels)]
         
         
-def get_dataloader(questions,generated_ques,model,labels = None, bs = 32 , n = 4):
+def get_dataloader(question_to_label, model,bs = 32 , n = 4):
     """
-        questions --> array of string
-        labels --> array of labels
-        generated_ques --> a dict from ques to array of generated ques
+        question_to_label --> mapping form qustions to labels
         bs --> batch size
         n  --> number of classes to pick , from 
     """
 
-    Q = Question_sampler(questions ,generated_ques,model,labels, bs = bs , n = n)
+    Q = Question_sampler(question_to_label,model, bs = bs , n = n)
     train_data = Q
     train_dataloader = DataLoader(train_data,  batch_size= bs, sampler= SequentialSampler(train_data))
     return train_dataloader
