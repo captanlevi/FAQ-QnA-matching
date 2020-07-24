@@ -152,7 +152,7 @@ class modelInterface:
         
         for q,l in question_to_label.items():
             # Damien , here also incorporate the other pipeline ....
-            gen_ques = []#self.augment_rushi(q,10)
+            gen_ques = self.augment_rushi(q,10)
             # gen_ques are generated questions , a list , you need to append other gengerated ques to this list
             """
                 invoke your function for augmentation pipeline here....
