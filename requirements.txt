@@ -1,10 +1,11 @@
-numpy==1.18.4
-tqdm==4.46.1
+nlpaug==0.0.14
 scipy==1.4.1
-requests==2.23.0
-transformers==2.11.0
-pandas==1.0.3
 torch==1.2.0+cpu
 nltk==3.4.5
+transformers==2.11.0
+requests==2.23.0
+numpy==1.18.4
+tqdm==4.46.1
+pandas==1.0.3
 apex==0.9.10dev
 scikit_learn==0.23.1
