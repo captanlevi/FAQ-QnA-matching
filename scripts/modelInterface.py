@@ -75,7 +75,7 @@ class modelInterface:
 
         self.model = SentenceTransformer(model_path)
         self.current_faq = None
-        self.faq_path = os.path.join("FAQs", faq_name) 
+        self.faq_path = os.path.join(os.getcwd(),"FAQs", faq_name) 
         self.augment_rushi = AUG()
         self.question_to_label = {} # contans all the augmented and orignal questions mapped to their labels
         self.answer_to_label = {} #  contains mapping form answer to labels
