@@ -52,21 +52,17 @@ class AUG():
 
 
 class modelInterface:
-    def __init__(self, faq_name ,faq_data = None,model_path = None):
+    def __init__(self, faq_path ,faq_data = None,model_path = None):
         """ 
         Either mention the model path to previously saved model ,
         or let it be , none
         when model path is None , the model will be a transformer model, with roBERTa base
-
         faq_name is the name of the faq , generated questions and answers , if it already exists , we will used the
         processed questions and answers , otherwise , we have to create a new one
-
         if faq name , has not been processed atleast once , you must provide faq_data
         faq_data --> dict has two keys , question_to_label , and answer_to_label
-
         1) question_to_label
         2) answer_to_label
-
         question_to_labels is again a dictionary from questions : label(int)  can have multiple questions for same label
         answer_to_labels is a dictionary from answers to label : one label per answer (strict !!!)
         """
@@ -75,7 +71,7 @@ class modelInterface:
 
         self.model = SentenceTransformer(model_path)
         self.current_faq = None
-        self.faq_path = os.path.join(os.getcwd(),"FAQs", faq_name) 
+        self.faq_path = faq_path
         self.augment_rushi = AUG()
         self.question_to_label = {} # contans all the augmented and orignal questions mapped to their labels
         self.answer_to_label = {} #  contains mapping form answer to labels
@@ -91,7 +87,7 @@ class modelInterface:
             self.answer_to_label = load_dict(ans_path)
 
         else:
-            assert not faq_data is None , "Did not find and preexisting of {} so you must provide faq_data".format(faq_name)
+            assert not faq_data is None , "Did not find and preexisting of {} so you must provide faq_data".format(faq_data)
             self.make_faq(faq_data)
             
     
@@ -125,7 +121,6 @@ class modelInterface:
         FAQ is a dictionary has 2 keys.....
         1) question_to_label
         2) answer_to_label
-
         question_to_labels is again a dictionary from questions : label(int)  can have multiple questions for same label
         answer_to_labels is a dictionary from answers to label : one label per answer (strict !!!)
         """
@@ -152,12 +147,11 @@ class modelInterface:
         
         for q,l in question_to_label.items():
             # Damien , here also incorporate the other pipeline ....
-            gen_ques = self.augment_rushi(q,10)
+            gen_ques = self.augment_rushi(q,5)
             # gen_ques are generated questions , a list , you need to append other gengerated ques to this list
             """
                 invoke your function for augmentation pipeline here....
                 and append results to the gen_ques list..
-
                 Thank you
             """
             aug_question_to_label[q] = l
@@ -178,24 +172,19 @@ class modelInterface:
     
     def train(self,model_save_path, data =None):
         """
-
         questions = ['Q1', 'Q2', 'Q3', ....]
         labels = [1,2,3,1,4,8,9,10]
-
         generated_ques = {'Q1' : ['GQ1-1', 'GQ1-2', ...] , 'Q2' : ['GQ2-1', ...]}
         bs : 32
         n : 4
-
         model_save_path : './models/model_first'
         data --> a dict {'question_to_label' : mapping from question to label,
                         'bs': batch_size for training
                         'n' : num_of_classes to sample in a batch (bs%n ==0), 
                         }
         model_save_path = path of folder to save the model 
-
         This function will fit you data using a batch hard triplet loss, and save the model to the folder specified
         the folder should be empty or not created in the  beginning!!!
-
         if data is NONE 
         we will just use the presaved data
         """
@@ -230,96 +219,59 @@ class modelInterface:
         ans = ans/n2.reshape(1,-1)
         return ans
 
-    def evaluate(self,data, mode = 'mean'):
+    def evaluate(self,data, K = 5, cutoff = .6):
         """
         Will evaluate model , on a given test_set
-        data --> dict
-        keys are 
-            1) test_questions_labels_dict --> a dict {'question' : label_number, ...}  is a mapping from test questions to labels
-            2) data_questions_label_dict --> dict {'question', label_number , ....} is a mapping of FAQ questions to labels
-
-            make sure that the labels are in sync, 
-            so the label will map test questions to another question in the test set
+        data is a dict from test_questions to labels 
+        MAKE SURE THAT THE LABELS ARE IN SYNC WITH THE ONES YOU USED FIT MODEL ON!!!
         """
+        correct = 0
+        for q,l in data.items():
+            _, predicted_label = self.answer_question(q, verbose = False,K = K, cutoff = cutoff)
+            if(int(predicted_label) == int(l) ):
+                correct += 1
+
+        return correct/len(data)
 
         # converting to array
-        test_questions = []
-        test_labels = []
 
-        for q ,l in data['test_questions_labels_dict'].items():
-            test_questions.append(q)
-            test_labels.append(int(l))
 
-        test_questions = np.array(self.model.encode(test_questions))
-        test_labels = np.array(test_labels)
-        # Now test_questions is a np.ndarray (N , embedding_dim) , and test_labels is a np.ndarray (N,)
 
-        data_questions = []
-        data_labels = []
-
-        for q,l in data['data_questions_labels_dict'].items():
-            data_questions.append(q)
-            data_labels.append(int(l))
-
-        data_questions = np.array(self.model.encode(data_questions))
-        data_labels = np.array(data_labels)
-
-        unique_labels = np.unique(data_labels)
-
-        index_to_label = {}
-        mean_vector = np.empty((0,data_questions.shape[1]))
-        for i,label in enumerate(unique_labels):
-            index_to_label[i] = label
-
-            # picking out all the question with label == label
-            ques = data_questions[data_labels == label].mean(axis = 0).reshape(1,-1)
-            # now of shape (1,embedding_dim)
-            mean_vector = np.append(mean_vector , ques , axis= 0)
-
-        # now that we have label to index , lets compute ,cosine similirity
-
-        cosine_sims = self.cosine_sim(test_questions , mean_vector)
-        # of shape (num_test , num_unique_label)
-
-        indices = np.argmax(cosine_sims,axis = -1)
-
-        pred_labels = np.array([index_to_label[i] for i in indices ])
-        return ((test_labels == pred_labels).sum()) /len(test_labels)
-
+    def unfit_FAQ(self):
+        savepath = os.path.join(self.faq_path, "fit.pkl")
+        os.remove(savepath)
+        
 
     
 
-    def fit_FAQ(self,question_to_label = None , answer_to_label = None):
+    def fit_FAQ(self):
         """
-        dataset
-        Q1 --> A1
-        Q2 --> A1 ....
+        Will calculate the vectors of all the questions
+        and store them in a file "fit.pkl",
+        if the file already exists then , will directely fetch data from there.....
 
-        dct1 --> {'Q1' : 1, 'Qn': 1}
-
-        dct2 --> {'A1': 1}
-
-        A function to fit any given FAQ
-        data is a dict, has keys
-            1) question_to_label --> a dict ('string question' : label)
-            2) answer_to_label --> a dict ('string answer' : label)
-        
-
-        if you provide None , then it will just use the data stored in the current faqs name
-
+        To make changes , is 
+            IF YOU HAVE TRAINED A NEW MODEL AND WANT TO FIT AGAIN....
+            PLEASE CALL UNFIT_MODEL FIRST...
         """
-        if(question_to_label is None):
-            question_to_label = self.question_to_label
-        if(answer_to_label is None):
-            answer_to_label = self.answer_to_label
+
+        save_path = os.path.join(self.faq_path, "fit.pkl")
+        if(os.path.exists(save_path)):
+            warnings.warn("Found existing fit.pkl loading diles from there .....  if you have trained the model recently and want to use that model to fit, please call unfit_model... ")
+            self.current_faq = load_dict(save_path)
+            return
+
+
+
+        question_to_label = self.question_to_label
+        answer_to_label = self.answer_to_label
 
         questions = []
         labels = []
         for q,l in question_to_label.items():
-            questions.append(q.replace('\n','').strip())
+            questions.append(q)
             labels.append(int(l))
-        questions = np.array(questions)
-        labels = np.array(labels)
+        
 
         # Now inverting answer_to_label
         label_to_answer  = {}
@@ -338,16 +290,16 @@ class modelInterface:
             
 
 
-        self.current_faq  = {'embeddings' : self.model.encode(questions) , 'labels': labels, 'label_to_answer': label_to_answer, 'question_to_label' : question_to_label}
+        self.current_faq  = {'embeddings' : np.array(self.model.encode(questions)) , 'labels': labels, 'label_to_answer': label_to_answer, 'question_to_label' : question_to_label}
+        save_dict(self.current_faq, save_path)
 
+    def answer_question(self, question, K = 1 , cutoff = .3, verbose = True):
 
-    def answer_question(self, question, K = 1 , cutoff = .3):
         """
             This is where you ask the question , and a approropriate answer is returned,
             must call fit_FAQ before this
-
             question ==> string
-            returns ==> string
+            returns ==> (string , int)   ------ the answer and the label to the question the answer belongs to.....
         """
         if (self.current_faq is None):
             assert False , 'Need to fit_FAQ before calling answer_question'
@@ -362,7 +314,7 @@ class modelInterface:
         
         cosine_sim = self.cosine_sim(question, embeddings)[0]
         #cosine_sim --> shape (N,)
-
+        
         cosine_sim = cosine_sim.tolist()
         inds = [x for x in range(len(cosine_sim))]
         inds.sort(reverse = True, key = lambda x : cosine_sim[x])
@@ -370,22 +322,40 @@ class modelInterface:
         # we need to pick the top k answers
 
         max_val = cosine_sim[inds[0]]
-        print(max_val)
+
         if(max_val < cutoff):
-            return "out of set question"
+            return "out of set question" ,-1
         
         labels = [question_labels[x] for x in inds]
+        confs = [cosine_sim[x] for x in inds]
+        label_to_conf  = {}
+
+        ans = -1
+        mx = -1
+        for l ,conf in zip(labels,confs):
+            if(l not in label_to_conf):
+                label_to_conf[l] = 0
+            label_to_conf[l] += conf
+            if(label_to_conf[l] > mx):
+                mx = label_to_conf[l]
+                ans = l
+
+
+        """
+        print(labels)
+        print(confs)
         majority  = {}
 
         for label in labels:
             if(label not in majority):
                 majority[label] = 0
-
-            majority[label] += 1    
+            
+            majority[label] += 1
         
         cnt = -1
         ans = -1
 
+        print(majority)
         for label, count in majority.items():
             if(count > cnt):
                 cnt = count
@@ -393,32 +363,16 @@ class modelInterface:
 
 
 
-       
-        if(label not in label_to_answer):
-            return 'No answer corrosponding to the label {} , this means your question--label--answer dict is faulty '.format(label)
+        """
+        if(ans not in label_to_answer):
+            return 'No answer corrosponding to the label {} , this means your question--label--answer dict is faulty '.format(ans)
         
+        if(verbose):
+            print(max_val)
+            print(label_to_conf)
+            print("MAX label is {}".format(ans))
         for que, lab in question_to_label.items():
-            if(lab == label):
-                print("Answering {}".format(que))
-        return label_to_answer[label]        
-
-
-
-
-
-
-
-
-
-        
-
-
-
-        
-
-
-
-
-
-
-    
+            if(lab == ans):
+                if(verbose):
+                    print("Answering {}".format(que))
+        return label_to_answer[ans] , ans    

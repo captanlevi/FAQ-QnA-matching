@@ -15,27 +15,7 @@ from torch.utils.data import SequentialSampler
 
 
 
-class InputExample:
-    """
-    Structure for one input example with texts, the label and a unique id
-    """
-    def __init__(self, guid: str, texts: List[str], label: Union[int, float]):
-        """
-        Creates one InputExample with the given texts, guid and label
-        str.strip() is called on both texts.
-        :param guid
-            id for the example
-        :param texts
-            the texts for the example
-        :param label
-            the label for the example
-        """
-        self.guid = guid
-        self.texts = [text.strip() for text in texts]
-        self.label = label
 
-    def __str__(self):
-        return "<InputExample> label: {}, texts: {}".format(str(self.label), "; ".join(self.texts))
 
 
 class Question_sampler(Dataset): 
@@ -58,7 +38,7 @@ class Question_sampler(Dataset):
         self.sequence = []
         self.classes  = len(self.data)
         self.labels = list(self.data.keys())
-        self.make_sequence(total_examples = len(question_to_label)//3, batch_size = bs,n = n)
+        self.make_sequence(total_examples = len(question_to_label)//10, batch_size = bs,n = n)
     def __len__(self):
         return len(self.sequence[0])
     
@@ -135,8 +115,11 @@ class Question_sampler(Dataset):
             
             
             
-        self.sequence = [batch_inps, torch.tensor(batch_labels)]
-        
+        self.sequence = [batch_inps, torch.tensor(batch_labels) ]
+
+
+
+
         
 def get_dataloader(question_to_label, model,bs = 32 , n = 4):
     """
@@ -149,8 +132,6 @@ def get_dataloader(question_to_label, model,bs = 32 , n = 4):
     train_data = Q
     train_dataloader = DataLoader(train_data,  batch_size= bs, sampler= SequentialSampler(train_data))
     return train_dataloader
-
-
 
 if __name__ == '__main__':
     pass
