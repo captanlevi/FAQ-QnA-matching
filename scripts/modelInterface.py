@@ -51,6 +51,15 @@ class AUG():
 
 
 
+def save_dict(obj, path ):
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_dict(path):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+
 class modelInterface:
     def __init__(self, faq_path ,faq_data = None,model_path = None):
         """ 
@@ -107,7 +116,7 @@ class modelInterface:
         if(os.path.exists(self.faq_path) == False):
             return
         
-        files = [ "questions.pkl" ,  "answers.pkl"]
+        files = [ "questions.pkl" ,  "answers.pkl", "fit.pkl"]
 
         for f in files:
             pth = os.path.join(self.faq_path, f)
@@ -147,7 +156,7 @@ class modelInterface:
         
         for q,l in question_to_label.items():
             # Damien , here also incorporate the other pipeline ....
-            gen_ques = self.augment_rushi(q,5)
+            gen_ques = self.augment_rushi(q,6)
             # gen_ques are generated questions , a list , you need to append other gengerated ques to this list
             """
                 invoke your function for augmentation pipeline here....
@@ -239,7 +248,8 @@ class modelInterface:
 
     def unfit_FAQ(self):
         savepath = os.path.join(self.faq_path, "fit.pkl")
-        os.remove(savepath)
+        if(os.path.exists(savepath)):
+            os.remove(savepath)
         
 
     
@@ -286,7 +296,7 @@ class modelInterface:
             
         for l in labels:
             if(l not in label_to_answer):
-                 warnings.warn('some labels in question are not present in answers ,this might cause runtime errors later, you might not have labels in Sync')
+                warnings.warn('some labels in question are not present in answers ,this might cause runtime errors later, you might not have labels in Sync')
             
 
 
@@ -375,4 +385,4 @@ class modelInterface:
             if(lab == ans):
                 if(verbose):
                     print("Answering {}".format(que))
-        return label_to_answer[ans] , ans    
+        return label_to_answer[ans] , ans       
