@@ -19,6 +19,7 @@ import random
 import pickle
 
 sys.path.append("./generation")
+sys.path.append("./generation/rajat_work")
 
 from generation.base_generator import RushiAUG, RushiEDA, RushiFuzzy, RushiSymsub,multiProcessControl
 
