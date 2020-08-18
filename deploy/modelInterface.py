@@ -24,7 +24,7 @@ sys.path.append("./generation/rajat_work")
 from generation.base_generator import RushiAUG, RushiEDA, RushiFuzzy, RushiSymsub,multiProcessControl
 
 
-producer_classes = [RushiAUG,RushiEDA,RushiFuzzy,RushiSymsub]
+producer_classes = [(RushiAUG,10),(RushiEDA,10),(RushiFuzzy,10),(RushiSymsub,10)]
 
 
 
