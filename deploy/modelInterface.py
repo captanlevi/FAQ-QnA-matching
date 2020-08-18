@@ -136,7 +136,7 @@ class modelInterface:
         
         generated_dict = multiProcessControl(producer_classes, list(question_to_label))  # this is a mapping from question to a list of generated questions
 
-        for que, label in question_to_label.item():
+        for que, label in question_to_label.items():
             if(que not in generated_dict):
                 print("Some of the questions in the FAQ are missing after generation")
                 continue

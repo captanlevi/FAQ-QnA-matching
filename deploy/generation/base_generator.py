@@ -9,6 +9,7 @@ import re
 from rajat_work.qgen.generator.symsub import SymSubGenerator
 from rajat_work.qgen.generator.fpm.fpm import FPMGenerator
 from rajat_work.qgen.encoder.universal_sentence_encoder import USEEncoder
+from rajat_work.qgen.encoder.dummy import dummyEN
 from rajat_work.qgen.generator.eda import EDAGenerator
 import multiprocessing as mp
 
@@ -89,7 +90,8 @@ class RushiSymsub(QuestionGenerator):
         and has the method "get_vectors"
         this method takes in a list of string and returns a list of vectors
         """
-        super().__init__("symsub model",SymSubGenerator(USEEncoder(USE_PATH)))
+        super().__init__("symsub model",SymSubGenerator(dummyEN))
+        #USEEncoder(USE_PATH)
 
 
 class RushiFuzzy(QuestionGenerator):
