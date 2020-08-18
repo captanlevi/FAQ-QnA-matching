@@ -20,6 +20,7 @@ import pickle
 
 sys.path.append("./generation")
 sys.path.append("./generation/rajat_work")
+sys.path.append("./generation/rajat_work/qgen")
 
 from generation.base_generator import RushiAUG, RushiEDA, RushiFuzzy, RushiSymsub,multiProcessControl
 
