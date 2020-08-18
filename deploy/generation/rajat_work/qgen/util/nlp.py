@@ -136,6 +136,12 @@ def convert_contraction(sentence):
 def resolve_coref(sentence, context):
     """ Return a modified sentence with "mentions" replaced by the main entity
     """
+
+    # this is only a temporaty fix !!!!!
+
+    return sentence
+
+
     coref_model = _get_coref_model()
     doc = coref_model(context)
     if not doc._.has_coref:

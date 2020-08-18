@@ -24,7 +24,7 @@ sys.path.append("./generation/rajat_work")
 from generation.base_generator import RushiAUG, RushiEDA, RushiFuzzy, RushiSymsub,multiProcessControl
 
 
-producer_classes = [(RushiAUG,10),(RushiEDA,10),(RushiFuzzy,10),(RushiSymsub,10)]
+producer_classes = [(RushiAUG,6),(RushiEDA,6),(RushiFuzzy,6),(RushiSymsub,6)]
 
 
 
@@ -386,3 +386,27 @@ class modelInterface:
         return label_to_answer[ans] , ans       
 
 
+
+
+if __name__ == "__main__":
+    covid_df = pd.read_csv("../data/covid19data/msf_covid19.csv", header = None)
+    covid_questions = {}
+    covid_answers = {}
+    label = 0
+
+    for q,a in zip(covid_df[1], covid_df[2]):
+        q = q.split('\n')[0]
+        a = a.split('\n')[0]
+        if(a in covid_answers):
+            l = covid_answers[a]
+            covid_questions[q] = l
+        else:
+            covid_questions[q] = label
+            covid_answers[a] = label
+            label += 1
+
+
+    covid_data =  {"question_to_label" : covid_questions ,"answer_to_label" : covid_answers}
+    modelInter = modelInterface("../FAQs/covid",covid_data)
+
+    print(modelInter.question_to_label)

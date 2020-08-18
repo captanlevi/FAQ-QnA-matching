@@ -12,6 +12,8 @@ from rajat_work.qgen.generator.fpm.fpm import FPMGenerator
 from rajat_work.qgen.encoder.dummy import dummyEN
 from rajat_work.qgen.generator.eda import EDAGenerator
 import multiprocessing as mp
+import pandas as pd
+import numpy as np
 
 class AUG():
     def __init__(self):
@@ -113,12 +115,13 @@ class RushiAUG(QuestionGenerator):
 
 
 
-def worker_function(producer_class : QuestionGenerator ,questions: list,to_generate : int,Q):
+def worker_function(producer_class : QuestionGenerator ,questions: list,to_generate : int):
     """
     making the actual multiprocessing work , by instancitaing producer_object and starting the generate process
     """
     producer_object = producer_class()
-    Q.put(producer_object.generate_n(questions = questions,n = to_generate))
+    #Q.put(producer_object.generate_n(questions = questions,n = to_generate))
+    return producer_object.generate_n(questions=questions, n = to_generate)
 
 def multiProcessControl(producer_classes : list, questions : list):
     """
@@ -128,20 +131,17 @@ def multiProcessControl(producer_classes : list, questions : list):
     questions is just a list of strings 
     """
 
-    Q = mp.Queue()  # the common multiprocessing queue where all the generated questions are dumped  (dicts)
-    # p = mp.Process(target=foo, args=(q,))
 
-    processes = [None]*len(producer_classes)
-    for index,producer in enumerate(producer_classes):
-        processes[index] = mp.Process(target= worker_function, args= (producer[0],questions,producer[1],Q))
-        processes[index].start()
+    args = []
+    for p in producer_classes:
+        args.append((p[0],questions,p[1]))
+    with mp.Pool(4) as pool:
+        results = pool.starmap(worker_function, args)
 
-    for p in processes:
-        p.join()
+   
     
     merged_dict = dict()
-    while Q.qsize() != 0:
-        dct = Q.get()
+    for dct in results:
         for que,gen_ques in dct.items():
             if(que not in merged_dict):
                 merged_dict[que] = []
@@ -151,10 +151,33 @@ def multiProcessControl(producer_classes : list, questions : list):
     return merged_dict
 
 
+
 if __name__ == "__main__":
     p1 = [RushiSymsub,10]
     p2 = [RushiAUG,12]
     p3 = [RushiFuzzy,6]
-    questions = ["How to get above the office ?"]
+    covid_df = pd.read_csv("../../data/covid19data/msf_covid19.csv", header = None)
+    covid_questions = {}
+    covid_answers = {}
+    label = 0
+    nm = 10
+    for q,a in zip(covid_df[1], covid_df[2]):
+        q = q.split('\n')[0]
+        a = a.split('\n')[0]
+        if(a in covid_answers):
+            l = covid_answers[a]
+            covid_questions[q] = l
+        else:
+            covid_questions[q] = label
+            covid_answers[a] = label
+            label += 1
+        if(nm == 0):
+            break
+        nm -= 1
+    questions = list(covid_questions.keys())
 
-    print(multiProcessControl([p1,p2,p3],questions))
+    #with mp.Pool(2) as pool:
+    #    results = pool.starmap(worker_function, [(p1[0],questions,5), (p2[0],questions,4)])
+
+    print(multiProcessControl([p2,p1,p3],questions))
+    #print(results)
