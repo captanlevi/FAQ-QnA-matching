@@ -135,7 +135,7 @@ def multiProcessControl(producer_classes : list, questions : list):
     args = []
     for p in producer_classes:
         args.append((p[0],questions,p[1]))
-    with mp.Pool(4) as pool:
+    with mp.Pool(len(producer_classes)) as pool:
         results = pool.starmap(worker_function, args)
 
    
