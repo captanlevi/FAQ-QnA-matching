@@ -10,7 +10,6 @@ class USEEncoder(BaseEncoder):
         super().__init__("Universal Sentence Encoder", 512, model_path)
 
         def init():
-            tf.logging.set_verbosity(tf.logging.ERROR)
             with tf.Graph().as_default():
                 sentence_placeholder = tf.placeholder(tf.string)
                 model = hub.Module(self.model_path)

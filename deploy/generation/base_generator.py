@@ -11,6 +11,7 @@ from rajat_work.qgen.generator.fpm.fpm import FPMGenerator
 #from rajat_work.qgen.encoder.universal_sentence_encoder import USEEncoder
 from rajat_work.qgen.encoder.dummy import dummyEN
 from rajat_work.qgen.generator.eda import EDAGenerator
+from broken_english.broken_english_generator import BrokenEnglishGen
 import multiprocessing as mp
 import pandas as pd
 import numpy as np
@@ -64,7 +65,10 @@ class QuestionGenerator:
         the dict maps each orignal question to a list of generated questions
         """
         print("working with {} pipeline".format(self.name))
-        result_dict = self.producer.batch_generate(questions)
+        if("exact_batch_generate" in dir(self.producer)):
+            result_dict = self.producer.exact_batch_generate(questions,n)
+        else:
+            result_dict = self.producer.batch_generate(questions)
         if(result_dict is None):
             answer = dict()
             for q in questions:
@@ -113,7 +117,9 @@ class RushiAUG(QuestionGenerator):
         self.aug = AUG_cache
     
 
-
+class RushiBroken(QuestionGenerator):
+    def __init__(self):
+        super().__init__("BrokenEnglish", BrokenEnglishGen())
 
 def worker_function(producer_class : QuestionGenerator ,questions: list,to_generate : int):
     """
@@ -153,9 +159,10 @@ def multiProcessControl(producer_classes : list, questions : list):
 
 
 if __name__ == "__main__":
-    p1 = [RushiSymsub,10]
-    p2 = [RushiAUG,12]
-    p3 = [RushiFuzzy,6]
+    #p1 = [RushiSymsub,10]
+    #p2 = [RushiAUG,12]
+    #p3 = [RushiFuzzy,6]
+    p4 = [RushiBroken,6]
     covid_df = pd.read_csv("../../data/covid19data/msf_covid19.csv", header = None)
     covid_questions = {}
     covid_answers = {}
@@ -178,6 +185,6 @@ if __name__ == "__main__":
 
     #with mp.Pool(2) as pool:
     #    results = pool.starmap(worker_function, [(p1[0],questions,5), (p2[0],questions,4)])
-
-    print(multiProcessControl([p2,p1,p3],questions))
+    
+    print(multiProcessControl([p4],questions))
     #print(results)

@@ -138,12 +138,11 @@ class modelInterface:
         generated_dict = multiProcessControl(producer_classes, list(question_to_label))  # this is a mapping from question to a list of generated questions
 
         for que, label in question_to_label.items():
+            aug_question_to_label[que] = label
             if(que not in generated_dict):
                 print("Some of the questions in the FAQ are missing after generation")
                 continue
             gens = generated_dict[que]
-
-            aug_question_to_label[que] = label
             for q in gens:
                 aug_question_to_label[q] = label
 
@@ -390,6 +389,7 @@ class modelInterface:
 
 
 if __name__ == "__main__":
+    """
     covid_df = pd.read_csv("../data/covid19data/msf_covid19.csv", header = None)
     covid_questions = {}
     covid_answers = {}
@@ -406,8 +406,11 @@ if __name__ == "__main__":
             covid_answers[a] = label
             label += 1
 
-
+    
     covid_data =  {"question_to_label" : covid_questions ,"answer_to_label" : covid_answers}
-    modelInter = modelInterface("../FAQs/covid",covid_data)
+    """
+    
+    comcare_data = load_dict("./comcare_orignal.pkl")
+    modelInter = modelInterface("../FAQs/comcare",comcare_data)
+    
 
-    print(modelInter.question_to_label)
