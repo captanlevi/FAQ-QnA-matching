@@ -4,3 +4,10 @@ __pycache__/
 data/
 lm/
 pkl/
+
+#python directory
+bin
+include
+lib
+lib64
+pyvenv.cfg

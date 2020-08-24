@@ -4,9 +4,12 @@ import math
 import re
 from .utils import getNgramWordList
 import time
+import os
 
 # form a big list of words
 def formListOfWords(path, from_scratch=False):
+    directory = os.path.dirname(os.path.abspath(__file__))
+    ngramWordsFile = os.path.join(directory, 'pkl', 'ngramWordsList.pkl')
     if from_scratch:
         chUnigramStart = 21311
         chUnigramEnd = 284082
@@ -15,10 +18,10 @@ def formListOfWords(path, from_scratch=False):
         ret = getNgramWordList(path, 5000, chUnigramStart, chUnigramEnd)
         ret2 = getNgramWordList(path, 50000, chBigramStart, chBigramEnd)
         ret.update(ret2)
-        with open('./generation\\broken_english\\pkl\\ngramWordsList.pkl','wb') as f:
+        with open(ngramWordsFile,'wb') as f:
             pickle.dump(ret, f, pickle.HIGHEST_PROTOCOL)
     else:
-        with open('./generation\\broken_english\\pkl\\ngramWordsList.pkl','rb') as f:
+        with open(ngramWordsFile,'rb') as f:
             ret = pickle.load(f)
 
     return ret
@@ -51,7 +54,7 @@ def sortByScore(segs_scores_list):
 def updateSeg(chSeg, indices):
     if indices == ():
         return chSeg
-    
+
     seg = []
     for i,idx in enumerate(indices):
         if i==0:
@@ -111,7 +114,7 @@ def ngramCombine(chSeg, ngram_words, lm):
                     ret2.append(i)
         else:
             ret2 = ret
-        
+
         # sort by score
         ret, segs, scores = sortByScore(ret2)
 
@@ -123,18 +126,18 @@ if __name__ == "__main__":
     from googletrans import Translator
     import kenlm
     import jieba
-    
+
     punc = string.punctuation
     chineseStr = 'zh-cn'
     englishStr = 'en'
-    
+
     translator = Translator(service_urls=['translate.google.cn'])
-    
+
     lm_path = './lm/lm3.arpa'
     model = kenlm.Model(lm_path)
     ch = '我一下子就好了起来。我怎么这么好看！'
     print('Chinese translation: '+ch)
-    
+
     chSeg = list(jieba.cut(ch)) # every element of this list is a chinese word group
     print('Chinese translation after cutting: '+str(chSeg))
     ret, sign = ngramCombine(chSeg, formListOfWords('./generation\\broken_english\\lm\\lm3.txt',from_scratch=False), model)

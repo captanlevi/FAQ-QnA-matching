@@ -3,6 +3,7 @@ import pickle
 import math
 import re
 from googletrans import Translator
+import os
 
 # setup the translator
 def getTranslator(set_proxy=True):
@@ -23,7 +24,8 @@ def readTexts(path):
 
 # use the unigram words to extend jieba' dictionary
 def extendJieba():
-    path = 'C:\\Users\\rjkin\\Desktop\\NTU_thesis\\cluster-model\\deploy\\generation\\broken_english\\lm\\lm3.txt'
+    directory = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(directory, 'lm', 'lm3.txt')
     chUnigramStart = 21311
     chUnigramEnd = 284082
     save_buffer = getNgramWordList(path, 5000, chUnigramStart, chUnigramEnd)
