@@ -25,7 +25,7 @@ sys.path.append("./generation/rajat_work/qgen")
 from generation.base_generator import RushiAUG, RushiEDA, RushiFuzzy, RushiSymsub,RushiBroken,multiProcessControl
 
 
-producer_classes = [(RushiAUG,6),(RushiEDA,6),(RushiFuzzy,6),(RushiSymsub,6),(RushiBroken,2)]
+producer_classes = [(RushiAUG,6),(RushiEDA,6),(RushiFuzzy,6),(RushiSymsub,6)]
 
 
 
@@ -420,8 +420,8 @@ if __name__ == "__main__":
     covid_data =  {"question_to_label" : covid_questions ,"answer_to_label" : covid_answers}
     """
     
-    comcare_data = load_dict("./comcare_orignal.pkl")
-    modelInter = modelInterface("../FAQs/comcare",comcare_data)
+    comcare_data = load_dict("../Orignal_FAQs/baby_data.pkl")
+    modelInter = modelInterface("../FAQs/babybonus",comcare_data)
 
     
 
