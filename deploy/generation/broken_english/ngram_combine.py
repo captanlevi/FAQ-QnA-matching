@@ -15,10 +15,10 @@ def formListOfWords(path, from_scratch=False):
         ret = getNgramWordList(path, 5000, chUnigramStart, chUnigramEnd)
         ret2 = getNgramWordList(path, 50000, chBigramStart, chBigramEnd)
         ret.update(ret2)
-        with open('C:\\Users\\rjkin\\Desktop\\NTU_thesis\\cluster-model\\deploy\\generation\\broken_english\\pkl\\ngramWordsList.pkl','wb') as f:
+        with open('./generation\\broken_english\\pkl\\ngramWordsList.pkl','wb') as f:
             pickle.dump(ret, f, pickle.HIGHEST_PROTOCOL)
     else:
-        with open('C:\\Users\\rjkin\\Desktop\\NTU_thesis\\cluster-model\\deploy\\generation\\broken_english\\pkl\\ngramWordsList.pkl','rb') as f:
+        with open('./generation\\broken_english\\pkl\\ngramWordsList.pkl','rb') as f:
             ret = pickle.load(f)
 
     return ret
@@ -137,5 +137,5 @@ if __name__ == "__main__":
     
     chSeg = list(jieba.cut(ch)) # every element of this list is a chinese word group
     print('Chinese translation after cutting: '+str(chSeg))
-    ret, sign = ngramCombine(chSeg, formListOfWords('C:\\Users\\rjkin\Desktop\\NTU_thesis\\cluster-model\\deploy\\generation\\broken_english\\lm\\lm3.txt',from_scratch=False), model)
+    ret, sign = ngramCombine(chSeg, formListOfWords('./generation\\broken_english\\lm\\lm3.txt',from_scratch=False), model)
     print(sign)

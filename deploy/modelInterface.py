@@ -420,8 +420,10 @@ if __name__ == "__main__":
     covid_data =  {"question_to_label" : covid_questions ,"answer_to_label" : covid_answers}
     """
     
-    comcare_data = load_dict("../Orignal_FAQs/baby_data.pkl")
-    modelInter = modelInterface("../FAQs/babybonus",comcare_data)
+   # comcare_data = load_dict("../Orignal_FAQs/baby_data.pkl")
+   # modelInter = modelInterface("../FAQs/babybonus",comcare_data)
+    p4 = [RushiBroken,6]
+    print(multiProcessControl([p4], ["How do I get to the office for baby bonus ?"]))
 
     
 

@@ -15,7 +15,7 @@ import json
 class BrokenEnglishGen():
 
     def __init__(self):
-        lm_path = 'C:\\Users\\rjkin\\Desktop\\NTU_thesis\\cluster-model\\deploy\\generation\\broken_english\\lm\\lm3.arpa'
+        lm_path = './generation\\broken_english\\lm\\lm3.arpa'
         self.model = kenlm.Model(lm_path)
 
     def translate(self, ret):
@@ -65,7 +65,7 @@ class BrokenEnglishGen():
             chSeg = list(filter(" ".__ne__, jieba.cut(ch))) # every element of this list is a chinese word group
             # print('Chinese translation after cutting: ' + str(chSeg))
 
-            ret_ngram, sign = ngramCombine(chSeg, formListOfWords('C:\\Users\\rjkin\\Desktop\\NTU_thesis\\cluster-model\\deploy\\generation\\broken_english\\lm\\lm3.txt',False), self.model)
+            ret_ngram, sign = ngramCombine(chSeg, formListOfWords('./generation\\broken_english\\lm\\lm3.txt',False), self.model)
             if sign == False:
                 # no permutations produced by ngram combine, then use random combine
                 combine_type = 'random'
