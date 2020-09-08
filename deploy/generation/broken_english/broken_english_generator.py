@@ -11,6 +11,7 @@ from .random_combine import randomCombine
 import json
 import os
 import threading
+import time
 
 class BrokenEnglishGen():
 
@@ -56,6 +57,7 @@ class BrokenEnglishGen():
             thread = threading.Thread(target=self.generate, args=(sentence, n, results_dict))
             threads.append(thread)
             thread.start()
+            time.sleep(1.5)
 
         for t in threads:
             t.join()

@@ -18,13 +18,13 @@ import numpy as np
 
 class AUG():
     def __init__(self):
-        aug0 = naw.RandomWordAug()
+        #aug0 = naw.RandomWordAug()
         aug1 = naw.ContextualWordEmbsAug(model_path='bert-base-uncased', action="substitute")
         aug2 = naw.SynonymAug(aug_src='wordnet')
-        aug3 = naw.SplitAug()
+        #aug3 = naw.SplitAug()
         aug4 = naw.ContextualWordEmbsAug(model_path='bert-base-uncased', action="insert")
 
-        self.augs = [aug0, aug1,aug2,aug3,aug4]
+        self.augs = [aug1,aug2,aug4]
         
     def __call__(self,sent,n= 1):
         return self.augment(sent,n)

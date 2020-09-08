@@ -25,7 +25,7 @@ sys.path.append("./generation/rajat_work/qgen")
 from generation.base_generator import RushiAUG, RushiEDA, RushiFuzzy, RushiSymsub,RushiBroken,multiProcessControl
 
 
-producer_classes = [(RushiAUG,6),(RushiEDA,6),(RushiFuzzy,6),(RushiSymsub,6)]
+producer_classes = [(RushiAUG,2),(RushiEDA,3),(RushiFuzzy,4),(RushiSymsub,4),(RushiBroken,4)]
 
 
 
@@ -52,17 +52,17 @@ class modelInterface:
         processed questions and answers , otherwise , we have to create a new one
         if faq name , has not been processed atleast once , you must provide faq_data
         faq_data --> dict has two keys , question_to_label , and answer_to_label
-        {q2l : {} , a2l : {}}
         1) question_to_label
         2) answer_to_label
-
-        
-        q2l = {"How are you doing " : 1 , "where are you ? ": 3}
-        a2l = {"I am fine" : 1 , "I am in India": 3}
-        faq_data = {"questiontolabel" : q2l , "answertolabel" : a2l}
-
         question_to_labels is again a dictionary from questions : label(int)  can have multiple questions for same label
         answer_to_labels is a dictionary from answers to label : one label per answer (strict !!!)
+        example
+        
+            q2l = {"How are you doing " : 1 , "where are you ? ": 3}
+            a2l = {"I am fine" : 1 , "I am in India": 3}
+            faq_data = {"questiontolabel" : q2l , "answertolabel" : a2l}
+
+        
         """
         if(model_path == None):
             model_path = 'roberta-base-nli-stsb-mean-tokens'
@@ -420,10 +420,8 @@ if __name__ == "__main__":
     covid_data =  {"question_to_label" : covid_questions ,"answer_to_label" : covid_answers}
     """
     
-   # comcare_data = load_dict("../Orignal_FAQs/baby_data.pkl")
-   # modelInter = modelInterface("../FAQs/babybonus",comcare_data)
-    p4 = [RushiBroken,6]
-    print(multiProcessControl([p4], ["How do I get to the office for baby bonus ?"]))
+    baby_bonus_orignal = load_dict("../Orignal_FAQs/baby_bonus_orignal.pkl")
+    modelInter = modelInterface(faq_path = "../FAQs/babybonus", faq_data = baby_bonus_orignal)
 
     
 
