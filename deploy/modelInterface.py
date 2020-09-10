@@ -418,18 +418,18 @@ class modelInterface:
 
 
         """
-        if(ans not in label_to_answer):
+        if(ans not in self.label_to_answer):
             return 'No answer corrosponding to the label {} , this means your question--label--answer dict is faulty '.format(ans)
         
         if(verbose):
             print(max_val)
             print(label_to_conf)
             print("MAX label is {}".format(ans))
-        for que, lab in question_to_label.items():
+        for que, lab in self.question_to_label.items():
             if(lab == ans):
                 if(verbose):
                     print("Answering {}".format(que))
-        return label_to_answer[ans] , ans , similar_questions      
+        return self.label_to_answer[ans] , ans , similar_questions      
 
 
 
