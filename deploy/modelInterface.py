@@ -39,8 +39,10 @@ def load_dict(path):
         return pickle.load(f)
 
 
-
-
+class LabelsSyncException(Exception):
+    """To raise exception when labels are not in sync (some labels in questions not in answers, as it will
+    cause runtime errors 
+    )"""
 
 class modelInterface:
     def __init__(self, faq_path : str ,faq_data : dict = None,model_path : str = None):
@@ -74,16 +76,25 @@ class modelInterface:
         self.answer_to_label = {} #  contains mapping form answer to labels
         # current data is to be filled using the fit_FAQ function call
         # it has 3 keys 1) embeddings  (a np array) 2) labels 3) label_to_answer dict
+        self.label_to_answer = {}
+        self.label_to_orignal = {}
 
         if(self.check_faq_path()):
             print("found preexisiting faq data , loading dicts from the same")
-            que_path = os.path.join(self.faq_path, "questions.pkl")
-            self.question_to_label = load_dict(que_path)
+            question_to_label_path = os.path.join(self.faq_path, "question_to_lable.pkl")
+            self.question_to_label = load_dict(question_to_label_path)
             
-            ans_path = os.path.join(self.faq_path, "answers.pkl")
-            self.answer_to_label = load_dict(ans_path)
+            answer_to_label_path = os.path.join(self.faq_path, "answer_to_label.pkl")
+            self.answer_to_label = load_dict(answer_to_label_path)
+
+            label_to_answer_path = os.path.join(self.faq_path , "label_to_answer.pkl")
+            self.label_to_answer = load_dict(answer_to_label_path)
+
+            label_to_orignal_path = os.path.join(self.faq_path, "label_to_orignal.pkl")
+            self.label_to_orignal = load_dict(label_to_orignal_path)
 
         else:
+            self.destroy_faq()
             assert not faq_data is None , "Did not find and preexisting of {} so you must provide faq_data".format(faq_data)
             self.make_faq(faq_data)
             
@@ -92,7 +103,7 @@ class modelInterface:
         if(os.path.exists(self.faq_path) == False):
             return False
 
-        files = [ "questions.pkl" ,  "answers.pkl"]
+        files = [ "question_to_label.pkl" ,  "answer_to_label.pkl", "label_to_answer.pkl","label_to_orignal.pkl"]
 
         for f in files:
             pth = os.path.join(self.faq_path, f)
@@ -104,7 +115,7 @@ class modelInterface:
         if(os.path.exists(self.faq_path) == False):
             return
         
-        files = [ "questions.pkl" ,  "answers.pkl", "fit.pkl"]
+        files = [ "question_to_label.pkl" ,  "answer_to_label.pkl", "fit.pkl","label_to_answer.pkl","label_to_orignal.pkl"]
 
         for f in files:
             pth = os.path.join(self.faq_path, f)
@@ -129,18 +140,31 @@ class modelInterface:
         q_labels = set()
         a_labels = set()
 
+        # creating inverse mapping
+        label_to_answer = dict()
+        
         for q , l in question_to_label.items():
             q_labels.add(l)
-        
 
         for a, l in answer_to_label.items():
-
+            a_labels.add(l)
             if(l not in q_labels):
                 warnings.warn("Some labels in answers are not in the questions, these answers will never be a part of answers from the FAQ !!!")
                 print("label {} not in questions".format(l))
 
+            if(l in label_to_answer):
+                raise LabelsSyncException("Multiple labels for same answer, {} ,{}".format(a,l))
+            label_to_answer[l] = a
+
+      
+        
+        for l in q_labels:
+            if(l not in a_labels):
+                raise LabelsSyncException('some labels in question are not present in answers ,this might cause runtime errors later, you might not have labels in Sync ------ label --> {}'.format(l))
+                  
         
         aug_question_to_label = dict()
+        label_to_orignal = dict()
         
         generated_dict = multiProcessControl(producer_classes, list(question_to_label))  # this is a mapping from question to a list of generated questions
 
@@ -150,33 +174,26 @@ class modelInterface:
                 print("Some of the questions in the FAQ are missing after generation")
                 continue
             gens = generated_dict[que]
+            label_to_orignal[label] = que
             for q in gens:
                 aug_question_to_label[q] = label
 
 
         
         
-        """
-        for q,l in question_to_label.items():
-            # Damien , here also incorporate the other pipeline ....
-            #gen_ques = self.augment_rushi(q,6)
-            # gen_ques are generated questions , a list , you need to append other gengerated ques to this list
-        
-           #     invoke your function for augmentation pipeline here....
-           #     and append results to the gen_ques list..
-           #     Thank you
-            
-            gen_ques = multiProcessControl(producer_classes= producer_classes, questions= [q])
-
-            aug_question_to_label[q] = l
-            for a_q in gen_ques:
-                aug_question_to_label[a_q] = l
-            #  note that ifthe augmentation yields the same question, as a result it will not be added....
-        """
+       
         self.question_to_label = aug_question_to_label
         self.answer_to_label = answer_to_label
-        save_dict(self.question_to_label, os.path.join(self.faq_path,"questions.pkl"))
-        save_dict(self.answer_to_label , os.path.join(self.faq_path, 'answers.pkl'))
+        self.label_to_orignal = label_to_orignal
+        self.label_to_answer = label_to_answer
+
+
+
+
+        save_dict(self.question_to_label, os.path.join(self.faq_path,"question_to_label.pkl"))
+        save_dict(self.answer_to_label , os.path.join(self.faq_path, 'answer_to_label.pkl'))
+        save_dict(self.label_to_answer , os.path.join(self.faq_path, 'label_to_answer.pkl'))
+        save_dict(self.label_to_orignal , os.path.join(self.faq_path, 'label_to_orignal.pkl'))
 
                 
 
@@ -280,7 +297,8 @@ class modelInterface:
 
         question_to_label = self.question_to_label
         answer_to_label = self.answer_to_label
-
+        label_to_answer = self.label_to_answer
+        
         questions = []
         labels = []
         for q,l in question_to_label.items():
@@ -289,6 +307,7 @@ class modelInterface:
         
 
         # Now inverting answer_to_label
+        """
         label_to_answer  = {}
         for answer , label in answer_to_label.items():
             if(label in label_to_answer):
@@ -301,11 +320,12 @@ class modelInterface:
             
         for l in labels:
             if(l not in label_to_answer):
-                warnings.warn('some labels in question are not present in answers ,this might cause runtime errors later, you might not have labels in Sync')
+                raise LabelsSyncException('some labels in question are not present in answers ,this might cause runtime errors later, you might not have labels in Sync')
             
+        """
 
-
-        self.current_faq  = {'embeddings' : np.array(self.model.encode(questions)) , 'labels': labels, 'label_to_answer': label_to_answer, 'question_to_label' : question_to_label}
+        # I am saving labels so that the ordered is remembered , as the dict in python cant be trusted for the order !!!
+        self.current_faq  = {'embeddings' : np.array(self.model.encode(questions)) , 'labels': labels}
         save_dict(self.current_faq, save_path)
 
     def answer_question(self, question, K = 1 , cutoff = .3, verbose = True):
@@ -321,8 +341,7 @@ class modelInterface:
         
         embeddings = self.current_faq['embeddings']
         question_labels = self.current_faq['labels']
-        label_to_answer = self.current_faq['label_to_answer']
-        question_to_label = self.current_faq['question_to_label']
+        
 
         question = self.model.encode([question])[0].reshape(1,-1)
         # question is now a np.ndarray of shape (1,embedding_dim)
@@ -333,6 +352,25 @@ class modelInterface:
         cosine_sim = cosine_sim.tolist()
         inds = [x for x in range(len(cosine_sim))]
         inds.sort(reverse = True, key = lambda x : cosine_sim[x])
+
+        """
+        Writing code for suggested questions , ie the most similar questions.....
+        Getting most similar 5  questions
+        """
+        ########################################################
+        similar_labels = set()
+        for index in inds:
+            if(question_labels[index] not in similar_labels):
+                similar_labels.insert(question_labels[index])
+            if(len(similar_labels) > 5):
+                break
+        
+        similar_questions = [self.label_to_orignal[l] for l in similar_labels]
+        
+        ########################################################
+
+
+
         inds = inds[:K]
         # we need to pick the top k answers
 
@@ -390,7 +428,7 @@ class modelInterface:
             if(lab == ans):
                 if(verbose):
                     print("Answering {}".format(que))
-        return label_to_answer[ans] , ans       
+        return label_to_answer[ans] , ans , similar_questions      
 
 
 
