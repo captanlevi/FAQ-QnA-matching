@@ -362,7 +362,7 @@ class modelInterface:
         similar_labels = set()
         for index in inds:
             if(question_labels[index] not in similar_labels):
-                similar_labels.insert(question_labels[index])
+                similar_labels.add(question_labels[index])
             if(len(similar_labels) > 5):
                 break
         
