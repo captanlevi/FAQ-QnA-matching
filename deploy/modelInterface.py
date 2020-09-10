@@ -329,13 +329,15 @@ class modelInterface:
         self.current_faq  = {'embeddings' : np.array(self.model.encode(questions)) , 'labels': labels}
         save_dict(self.current_faq, save_path)
 
-    def answer_question(self, question, K = 1 , cutoff = .3, verbose = True):
+    def answer_question(self, question, K = 1 , cutoff = .3, verbose = False):
 
         """
             This is where you ask the question , and a approropriate answer is returned,
             must call fit_FAQ before this
             question ==> string
-            returns ==> (string , int)   ------ the answer and the label to the question the answer belongs to.....
+            returns ==> (answer : string , status : int , [list of similar questions])   ------ the answer and the label to the question the answer belongs to.....
+            if the status is -1 then the answer is out of set 
+            else the status is the label of the question (for debugginh and testing only)
         """
         if (self.current_faq is None):
             assert False , 'Need to fit_FAQ before calling answer_question'
@@ -378,7 +380,7 @@ class modelInterface:
         max_val = cosine_sim[inds[0]]
 
         if(max_val < cutoff):
-            return "out of set question" ,-1
+            return "out of set question" ,-1, []
         
         labels = [question_labels[x] for x in inds]
         confs = [cosine_sim[x] for x in inds]
@@ -419,7 +421,7 @@ class modelInterface:
 
         """
         if(ans not in self.label_to_answer):
-            return 'No answer corrosponding to the label {} , this means your question--label--answer dict is faulty '.format(ans)
+            return ("label {} not found in label_to_answer , this shoud not have happened unless you misused the code , please redo the whole FAQ" , -1, [])
         
         if(verbose):
             print(max_val)
