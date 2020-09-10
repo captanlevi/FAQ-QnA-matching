@@ -88,7 +88,7 @@ class modelInterface:
             self.answer_to_label = load_dict(answer_to_label_path)
 
             label_to_answer_path = os.path.join(self.faq_path , "label_to_answer.pkl")
-            self.label_to_answer = load_dict(answer_to_label_path)
+            self.label_to_answer = load_dict(label_to_answer_path)
 
             label_to_orignal_path = os.path.join(self.faq_path, "label_to_orignal.pkl")
             self.label_to_orignal = load_dict(label_to_orignal_path)
