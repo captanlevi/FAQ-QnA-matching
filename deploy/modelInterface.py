@@ -259,7 +259,7 @@ class modelInterface:
         """
         correct = 0
         for q,l in data.items():
-            _, predicted_label = self.answer_question(q, verbose = False,K = K, cutoff = cutoff)
+            _, predicted_label,_ = self.answer_question(q, verbose = False,K = K, cutoff = cutoff)
             if(int(predicted_label) == int(l) ):
                 correct += 1
 
