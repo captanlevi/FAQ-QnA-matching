@@ -81,7 +81,7 @@ class modelInterface:
 
         if(self.check_faq_path()):
             print("found preexisiting faq data , loading dicts from the same")
-            question_to_label_path = os.path.join(self.faq_path, "question_to_lable.pkl")
+            question_to_label_path = os.path.join(self.faq_path, "question_to_label.pkl")
             self.question_to_label = load_dict(question_to_label_path)
             
             answer_to_label_path = os.path.join(self.faq_path, "answer_to_label.pkl")
@@ -94,6 +94,7 @@ class modelInterface:
             self.label_to_orignal = load_dict(label_to_orignal_path)
 
         else:
+            print("Did not find preexisting faq data, this can also mean that the preexisting data is corrupt or has some files missing !!!")
             self.destroy_faq()
             assert not faq_data is None , "Did not find and preexisting of {} so you must provide faq_data".format(faq_data)
             self.make_faq(faq_data)
@@ -115,7 +116,7 @@ class modelInterface:
         if(os.path.exists(self.faq_path) == False):
             return
         
-        files = [ "question_to_label.pkl" ,  "answer_to_label.pkl", "fit.pkl","label_to_answer.pkl","label_to_orignal.pkl"]
+        files = os.listdir(self.faq_path)
 
         for f in files:
             pth = os.path.join(self.faq_path, f)
@@ -458,8 +459,8 @@ if __name__ == "__main__":
     covid_data =  {"question_to_label" : covid_questions ,"answer_to_label" : covid_answers}
     """
     
-    baby_bonus_orignal = load_dict("../Orignal_FAQs/baby_bonus_orignal.pkl")
-    modelInter = modelInterface(faq_path = "../FAQs/babybonus", faq_data = baby_bonus_orignal)
+    baby_bonus_orignal = load_dict("../Orignal_FAQs/comcare_orignal.pkl")
+    modelInter = modelInterface(faq_path = "../FAQs/comcare", faq_data = baby_bonus_orignal)
 
     
 
