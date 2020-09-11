@@ -363,7 +363,7 @@ class modelInterface:
         ########################################################
         similar_labels = set()
         for index in inds:
-            if(question_labels[index] not in similar_labels):
+            if(question_labels[index] not in similar_labels and question_labels[index] != question_labels[0]):
                 similar_labels.add(question_labels[index])
             if(len(similar_labels) > 5):
                 break
@@ -380,7 +380,7 @@ class modelInterface:
         max_val = cosine_sim[inds[0]]
 
         if(max_val < cutoff):
-            return "out of set question" ,-1, []
+            return "out of set question" ,-1, similar_questions
         
         labels = [question_labels[x] for x in inds]
         confs = [cosine_sim[x] for x in inds]
@@ -461,8 +461,8 @@ if __name__ == "__main__":
     covid_data =  {"question_to_label" : covid_questions ,"answer_to_label" : covid_answers}
     """
     
-    baby_bonus_orignal = load_dict("../Orignal_FAQs/comcare_orignal.pkl")
-    modelInter = modelInterface(faq_path = "../FAQs/comcare", faq_data = baby_bonus_orignal)
+    orignal = load_dict("../Orignal_FAQs/comcare_orignal.pkl")
+    modelInter = modelInterface(faq_path = "../FAQs/comcare", faq_data = orignal)
 
     
 
