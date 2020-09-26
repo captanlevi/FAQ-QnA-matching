@@ -2,7 +2,7 @@ spacy==2.3.2
 nlpaug==0.0.16
 scipy==1.4.1
 nltk==3.5
-tensorflow==1.15.0
+tensorflow==1.15.4
 torch==1.5.0+cpu
 kenlm==0.0.0
 numpy==1.18.5
