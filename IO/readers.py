@@ -1,4 +1,4 @@
-from common.FAQ import *
+from core.FAQ import *
 import os
 from typing import List , Tuple, Dict
 import pandas as pd

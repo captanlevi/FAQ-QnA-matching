@@ -2,11 +2,11 @@ import os
 from typing import List, Tuple, Dict
 
 from numpy.testing._private.utils import assert_raises
-from common.FAQ import Answer, FAQ, Question , FAQUnit, FAQOutput
+from core.FAQ import Answer, FAQ, Question , FAQUnit, FAQOutput
 import numpy as np
 from sentence_transformers.readers import InputExample
 from sentence_transformers import  SentenceTransformer,SentencesDataset,losses
-from common.exceptions import *
+from core.exceptions import *
 from modelRelated.utils import cosineSim  , convertForBatchHardTripletLoss
 from torch.utils.data import DataLoader
 import warnings

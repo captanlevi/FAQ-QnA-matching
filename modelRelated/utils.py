@@ -1,6 +1,6 @@
 from sentence_transformers.readers import InputExample
-from common.FAQ import FAQ
-from common.exceptions import *
+from core.FAQ import FAQ
+from core.exceptions import *
 from typing import List
 import numpy as np
 
