@@ -101,7 +101,7 @@ class FAQWrapper:
 
 
 
-class ChadBot:
+class Bani:
     def __init__(self,FAQs : List[FAQ], modelPath : str = None):
         if(modelPath == None):
             modelPath = 'roberta-base-nli-stsb-mean-tokens'

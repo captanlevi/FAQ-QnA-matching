@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name = "Bani",
-    version = "0.1",
+    version = "0.2.1",
     author = "Rushi Babaria",
     url = "https://github.com/captanlevi/FAQ-QnA-matching.git",
     packages = setuptools.find_packages(),
