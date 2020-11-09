@@ -1,0 +1,5 @@
+checkpoints/
+__pycache__/
+broken_english/
+.ipynb_checkpoints/
+.vscode/
