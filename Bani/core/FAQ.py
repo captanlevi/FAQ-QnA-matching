@@ -207,7 +207,7 @@ class FAQ:
     
     def getQuestionWithLabel(self, label : int) -> Question:
         """
-        Returns all orignal questions for the particular label
+        Returns orignal question for the particular label
         """
         if(self.isEmpty()):
             raise AttemptedUsingEmptyFAQ()
@@ -380,11 +380,12 @@ class FAQ:
 
 
 class FAQOutput:
-    def __init__(self,answer : Union[Answer,None],question : Question ,faqName : str,faqId : int,score : float, similarQuestions : List[str], maxScore : float):
+    def __init__(self,answer : Answer,question : Question ,faqName : str,faqId : int,score : float, similarQuestions : List[str], maxScore : float):
         """
-        Answer == None means the question was out of set
+        
         """
         self.answer = answer
+        self.question = question
         self.faqId = faqId
         self.faqName = faqName
         self.score = score

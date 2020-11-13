@@ -343,7 +343,7 @@ class FAQ:
 
 
     def save(self, rootDirPath):
-        path = self,os.path.join(rootDirPath,self.name + ".pkl")
+        path = os.path.join(rootDirPath,self.name + ".pkl")
         with open(path, 'wb') as f:
             pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
 
