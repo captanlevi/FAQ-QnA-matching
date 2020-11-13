@@ -1,5 +1,3 @@
 # Example Package
-
-This is a simple example package. You can use
-[Github-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
-to write your content.
+This package aims to provide an easy way to set up your own question answering system , 
+Taking as input just raw text question answer pairs.
