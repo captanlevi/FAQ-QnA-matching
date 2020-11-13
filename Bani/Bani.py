@@ -2,6 +2,7 @@ import os
 from typing import List, Tuple, Dict
 
 from numpy.testing._private.utils import assert_raises
+import sentence_transformers
 from .core.FAQ import Answer, FAQ, Question , FAQUnit, FAQOutput
 import numpy as np
 from sentence_transformers.readers import InputExample
@@ -105,7 +106,7 @@ class Bani:
     def __init__(self,FAQs : List[FAQ], modelPath : str = None):
         if(modelPath == None):
             modelPath = 'roberta-base-nli-stsb-mean-tokens'
-        self.model : SentenceTransformer = SentenceTransformer(modelPath)
+        self.model : SentenceTransformer = self._getModel(modelPath)
         self.FAQs : List[FAQWrapper] = []
         self.idToFAQ : Dict[int,FAQWrapper] = dict()
 
@@ -190,6 +191,9 @@ class Bani:
         os.makedirs(path, exist_ok=True)
         self.model.save(path)
 
+
+    def _getModel(self, path):
+        return SentenceTransformer(path)
 
     def saveFAQs(self, rootDirPath : str):
         for faq in self.FAQs:
