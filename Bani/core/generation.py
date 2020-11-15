@@ -92,7 +92,7 @@ class GenerateManager:
     
     def addProducer(self,producer , name : str , toGenerate : int):
         newGenerator = QuestionGenerator(name= name, producer= producer,num= toGenerate)
-        self.generators.append(newGenerator)_
+        self.generators.append(newGenerator)
 
     
     
