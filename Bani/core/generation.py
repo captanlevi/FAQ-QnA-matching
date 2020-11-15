@@ -73,6 +73,8 @@ class GenerateManager:
             for i in range(len(producers)):
                 names.append("generator" + str(i))
         
+        assert len(names) == len(set(names)) , "The names of generators must be unique !!!"
+
         if(nums is None):
             nums = [10 for i in range(len(producers))]
 
@@ -80,6 +82,21 @@ class GenerateManager:
         self.generators : List[QuestionGenerator] = [QuestionGenerator(name= names[i],producer= producers[i], num =  nums[i]) for i in range(len(producers))]
 
 
+    def removeProducer(self, name):
+        newGenerators : List[QuestionGenerator] = []
+        for generator in self.generators:
+            if(generator.name != name):
+                newGenerators.append(generator)
+        self.generators = newGenerators
+
+    
+    def addProducer(self,producer , name : str , toGenerate : int):
+        newGenerator = QuestionGenerator(name= name, producer= producer,num= toGenerate)
+        self.generators.append(newGenerator)_
+
+    
+    
+    
     def generate(self, questions : List[str]) -> List[List[str]]:
         """
         takes the questions given , and uses the generators to generate.

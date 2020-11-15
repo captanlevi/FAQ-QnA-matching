@@ -349,21 +349,20 @@ class FAQ:
 
         
 
-    def resetAssignedVectors(self, rootDirPath):
+    def resetAssignedVectors(self):
         if(self.FAQ is None):
             return
         
         for unit in self.FAQ:
             unit.vectorRep = None
         
-        self.save(rootDirPath)
 
 
-    def resetFAQ(self, rootDirPath):
+    def resetFAQ(self):
         self.FAQ = None
         self.l2A = dict()
         self.l2Q = dict()
-        self.save(rootDirPath)
+
         
             
 
