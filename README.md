@@ -22,6 +22,47 @@ See the [tutorial](https://github.com/captanlevi/Bani/blob/master/Tutorial.ipynb
 
 
 ## Adding your own producers(sentence_generator)
+The quality of the FAQ is directely related to the quality of questions produced, As such Bani comes with a default  
+question generation pipeline , but also gives full freedom to customize or add your own **producers**.
+A producer is an instance of any class that implements either batch_generate method or exact_batch_generate
+```
+class MyProducer1:
+    def __init__(self):
+        pass
+    
+    def batch_generate(questions : List[str]) -> Dict[str, List[str]]:
+        """
+        Takes list of questions and returns a dict , with each question 
+        mapped to the list of generated questions
+        """
+        
+        resultDict = dict()
+        for question in questions:
+            resultDict[question] = ["generated1", "generated2", "and so on"]
+        
+        return resultDict
+```
+
+The objects that implement exact_batch_generate will produce at most **n** questions for a given question. 
+
+```
+class MyProducer2:
+    def __init__(self):
+        pass
+    
+    def exact_batch_generate(questions : List[str], num : int) -> Dict[str, List[str]]:
+        """
+        Takes list of questions and returns a dict , with each question 
+        mapped to the list of generated questions , for each question at most num questions are generated
+        """
+        
+        resultDict = dict()
+        for question in questions:
+            resultDict[question] = ["generated1", "generated2", "and so on"]
+        
+        return resultDict
+```
+
 
 
 
