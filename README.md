@@ -63,6 +63,23 @@ class MyProducer2:
         return resultDict
 ```
 
+Each of the producers are registered in a GenerateManager , with their names and how many questions to generate at max from  
+the producer.
+
+```
+from Bani.core.generation import GenerateManager
+
+names = ["myProducer1_name", "myProducer2_name"]
+toGenerate = [3,5] # At max generate 3 for first producer and 5 for second
+producers = [MyProducer1(), MyProducer2()]
+
+myGenerateManager = GenerateManager(producers = producers , names = names , nums = toGenerate)
+
+# Or you can register the producers one by one
+
+myGenerateManager.addProducer(producer = myProducer3, name = "myProducer3Name", togenerate = 5)
+```
+
 
 
 
