@@ -18,5 +18,7 @@ cd Bani ; pip install -r requirements
 
 
 ### Getting Started
-See the tutorial notebook for a quick introduction to the usage of the package.
+See the [tutorial](https://github.com/captanlevi/Bani/blob/master/Tutorial.ipynb) notebook for a quick introduction to the usage of the package.
+
+
 
