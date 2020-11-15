@@ -21,4 +21,7 @@ cd Bani ; pip install -r requirements
 See the [tutorial](https://github.com/captanlevi/Bani/blob/master/Tutorial.ipynb) notebook for a quick introduction to the usage of the package.
 
 
+## Adding your own producers(sentence_generator)
+
+
 
