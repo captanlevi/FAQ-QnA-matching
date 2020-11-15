@@ -13,6 +13,6 @@ This will install all the necessary packages , including the correct version of 
 Clone or download the source and then 
 ```
 python -m spacy download en_core_web_md
+cd Bani ; pip install -r requirements
 ```
 
-Now you need to install the depe
