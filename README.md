@@ -16,3 +16,7 @@ python -m spacy download en_core_web_md
 cd Bani ; pip install -r requirements
 ```
 
+
+### Getting Started
+See the tutorial notebook for a quick introduction to the usage of the package.
+
