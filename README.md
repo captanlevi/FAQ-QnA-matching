@@ -20,6 +20,22 @@ cd Bani ; pip install -r requirements
 ### Getting Started
 See the [tutorial](https://github.com/captanlevi/Bani/blob/master/Tutorial.ipynb) notebook for a quick introduction to the usage of the package.
 
+### Docs
+
+#### FAQ
+```
+class FAQ (self,name : str,questions : List[str] = None, answers : List[str] = None)
+```
+All the user supplied FAQs are stored in the FAQ class, The FAQ class further runs sanity checks on the faqs ,and provides interface to  
+generate questions and assign vectors.  
+
+##### Parameters  
+
+    1. name : The name of an FAQ , all FAQs must have unique names.  
+    2. questions : list of questions or None.  
+    3. answers : list of corrosponding answers or None.  
+    (if questions are None answers must also be None , and the FAQ will be empty , you can load this empty faq with another presaved FAQ)
+
 
 ## Adding your own producers(sentence_generator)
 The quality of the FAQ is directely related to the quality of questions produced, As such Bani comes with a default  
