@@ -95,8 +95,19 @@ The class that acts as the chatbot , It registers any number of FAQs , trains a 
                                          over the 'faqId'  FAQ.
      findClosest(self,query : str,  K : int = 3 , topSimilar : int = 5) -> List[FAQOutput] : The same as findClosestFromFAQ, but here the query is run over all the,  
                                         FAQs and the result is a list of FAQOutputs , the length of the list is the same as the number of FAQs.
-                                            
 
+
+
+#### FAQOutput
+    The user will get this , or a list of FAqOutput ,as the output for any query. It contains.  
+
+     answer : Answer : The actual answer
+     question : Question : The question that is being answered. (A generated question may be being answered, but only orignal question is given here)
+     faqName : str,      : name of the faq the answer is from. 
+     faqId : int,        : Id of the FAQ wrt the Bani object. 
+     score : float       : Combined KNN score
+     similarQuestions : List[str]  : Similar questions to the query asked , from the said FAQ.
+     maxScore : float    : The question with maximum similirity with the query.
 ## Adding your own producers(sentence_generator)
 The quality of the FAQ is directely related to the quality of questions produced, As such Bani comes with a default  
 question generation pipeline , but also gives full freedom to customize or add your own **producers**.
