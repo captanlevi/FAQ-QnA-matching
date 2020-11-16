@@ -1,5 +1,5 @@
 from logging import warning
-from typing import Any, List, Union, Dict
+from typing import Any, List, Union, Dict, Tuple
 import warnings
 
 
@@ -83,6 +83,9 @@ class GenerateManager:
 
 
     def removeProducer(self, name):
+        preNames = [generator.name for generator in self.generators]
+        if(name not in preNames):
+            raise ValueError("A producer with name {} does not exists exists".format(name))
         newGenerators : List[QuestionGenerator] = []
         for generator in self.generators:
             if(generator.name != name):
@@ -91,12 +94,23 @@ class GenerateManager:
 
     
     def addProducer(self,producer , name : str , toGenerate : int):
+        preNames = [generator.name for generator in self.generators]
+        if(name in preNames):
+            raise ValueError("A producer with name {} already exists".format(name))
         newGenerator = QuestionGenerator(name= name, producer= producer,num= toGenerate)
         self.generators.append(newGenerator)
 
     
-    
-    
+    def producerList(self) -> Tuple[List[str],List[int],List[Any]]:
+        names = []
+        nums = []
+        producers = [] 
+        for generator in self.generators:
+            names.append(generator.name)
+            nums.append(generator.num)
+            producers.append(generator.producer)
+        
+        return names, nums , producers
     def generate(self, questions : List[str]) -> List[List[str]]:
         """
         takes the questions given , and uses the generators to generate.

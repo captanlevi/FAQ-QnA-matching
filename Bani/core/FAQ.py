@@ -324,7 +324,7 @@ class FAQ:
             return False
         return True
 
-    def hasVectorsAssigned(self):
+    def hasVectorsAssigned(self) -> bool:
         if(self.isUsable() == False):
             return False
         for unit in self.FAQ:
@@ -360,6 +360,8 @@ class FAQ:
 
     def resetFAQ(self):
         self.FAQ = None
+        self.questions = None
+        self.answers = None
         self.l2A = dict()
         self.l2Q = dict()
 
