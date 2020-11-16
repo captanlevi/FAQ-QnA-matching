@@ -29,10 +29,10 @@ class FAQ (self,name : str,questions : List[str] = None, answers : List[str] = N
 All the user supplied FAQs are stored in the FAQ class, The FAQ class further runs sanity checks on the faqs ,and provides interface to  
 generate questions and assign vectors.  
 
-**Parameters**  
-     **name** : The name of an FAQ , all FAQs must have unique names.  
-     **questions** : list of questions or None.  
-     **answers** : list of corrosponding answers or None.  
+##### Parameters
+     name : The name of an FAQ , all FAQs must have unique names.  
+     questions : list of questions or None.  
+     answers : list of corrosponding answers or None.  
     (if questions are None answers must also be None , and the FAQ will be empty , you can load this empty faq with another presaved FAQ)
 
 
