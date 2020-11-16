@@ -30,10 +30,9 @@ All the user supplied FAQs are stored in the FAQ class, The FAQ class further ru
 generate questions and assign vectors.  
 
 **Parameters**  
-
-    1. name : The name of an FAQ , all FAQs must have unique names.  
-    2. questions : list of questions or None.  
-    3. answers : list of corrosponding answers or None.  
+     **name** : The name of an FAQ , all FAQs must have unique names.  
+     **questions** : list of questions or None.  
+     **answers** : list of corrosponding answers or None.  
     (if questions are None answers must also be None , and the FAQ will be empty , you can load this empty faq with another presaved FAQ)
 
 
