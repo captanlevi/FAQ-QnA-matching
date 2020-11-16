@@ -35,6 +35,19 @@ generate questions and assign vectors.
      answers : list of corrosponding answers or None.  
     (if questions are None answers must also be None , and the FAQ will be empty , you can load this empty faq with another presaved FAQ)
 
+##### Methods
+     getAnswerWithLabel(self, label : int) -> Answer  
+     getQuestionWithLabel(self, label : int) -> Question  
+     buildFAQ(self,generator : GenerateManager,model = None) : this method will generate questions using the given generator , and   
+                                                             if the model is also provided , it will assign the vectors to questions as well.  
+     isEmpty(self) -> bool : Returns true if the FAQ is empty  
+     isUsable(self) -> bool : Returns true if buildFAQ has been called and questions are generated.
+     hasVectorsAssigned(self) -> bool : Returns true if all the questions have vectors assigned.  
+     load(self,rootDirPath) -> None : Loads the FAQ with the name as self.name  within the root directory.  
+     save(self,rootDirPath) -> None : Saves the current object (self) as (self.name).pkl in the root directory.  
+     resetAssignedVectors -> None : Resets all the FAQ's assigned vectors to None.  
+     resetFAQ -> None : Resets the FAQ to an empty FAQ
+     
 
 ## Adding your own producers(sentence_generator)
 The quality of the FAQ is directely related to the quality of questions produced, As such Bani comes with a default  
