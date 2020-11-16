@@ -46,7 +46,25 @@ generate questions and assign vectors.
      load(self,rootDirPath) -> None : Loads the FAQ with the name as self.name  within the root directory.  
      save(self,rootDirPath) -> None : Saves the current object (self) as (self.name).pkl in the root directory.  
      resetAssignedVectors -> None : Resets all the FAQ's assigned vectors to None.  
-     resetFAQ -> None : Resets the FAQ to an empty FAQ
+     resetFAQ -> None : Resets the FAQ to an empty FAQ.  
+
+#### GenerateManager  
+```
+class GenerateManager (self , producers : List[Any], names : List[str] = None, nums : List[int] = None)
+```
+The GenerateManager is the interface where the user can register their own sentence prodicers. The class takes care of  
+how to run the producers (multi processing , multi threading or single process).  
+
+##### Parameters  
+     producers : list of producers (A producer is an instance of any class that implements either batch_generate method or exact_batch_generate).  
+     names : list of names of the producers , each producer must have a unique name.
+     nums : list of numbers , each number indicates the max number of questions to generate from the producer.  
+ 
+##### Methods  
+     addProducer(self,producer , name : str , toGenerate : int) : adding producer , the name must be different from the preexisting ones.  
+     producerList(self) -> Tuple[List[str],List[int],List[Any]] : returns the names,nums and producers that are registered.  
+     removeProducer(self, name) -> None : remove a producer from the generateManager.  
+     
      
 
 ## Adding your own producers(sentence_generator)
