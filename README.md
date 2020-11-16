@@ -1,6 +1,8 @@
 # Bani
 This package aims to provide an easy way to set up a question answering system,  
-Taking as input just raw text question answer pairs.
+Taking as input just raw text question answer pairs. The principal used is question similirity, ie the most similar question to a  
+given query is found and the answer corrosponding to the said question is answered. For this purpose KNN algorithm is used, And Batch hard Tripet  
+Loss is used to train a sentence transformer model.
 
 ## Installation 
 #### Install with pip
