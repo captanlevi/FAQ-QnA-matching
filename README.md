@@ -65,7 +65,37 @@ how to run the producers (multi processing , multi threading or single process).
      producerList(self) -> Tuple[List[str],List[int],List[Any]] : returns the names,nums and producers that are registered.  
      removeProducer(self, name) -> None : remove a producer from the generateManager.  
      
+
+#### Bani
+
+```
+class Bani(self,FAQs : List[FAQ], modelPath : str = None, assignVectors : bool = True):
+```
+The class that acts as the chatbot , It registers any number of FAQs , trains a model on the FAQs and then answers the questions on these FAQs.  
+
+##### Parameters  
+     FAQs : list of instances of FAQ class. (each FAQ is given a unique id)
+     modelPath : The path to a pretrained model , or any model from the sentence transformers models , if None then the roberta model is pulled.  
+     assignVectors : Whether to assign vectors wrt the new model, if true every question in all FAQs are passed through the current model , and new  
+                     vectors are assigned, if false then all the FAQs should have re assigned vectors.  
+
+
+##### Methods  
+     train(self,outputPath : str,batchSize = 16, epochs : int = 1, **kwargs) : method to train the model , after training  the new model is loaded and  
+                                                                               the FAQ vectors are reassigned using this model.  
+                                                                              
+     saveFAQs(self, rootDirPath : str) : method to save the FAQ with vectors assigned to rootDirPath , so that the next time you can set,  
+                                         assignVectors to False, if you are loading these FAQs (Just to save time).  
      
+     getFAQWithId(self, id : int) -> FAQ: method to get the faq wrt the given id , the indexing starts from 0.  
+     
+     
+     findClosestFromFAQ(self,faqId : int, query : str, K : int = 3, topSimilar : int = 5) -> FAQOutput : Takes in a user query and runs the knn algo over it.  
+                                         with K as K, and returns a FAQOutput object, whick topSimilar number of closest questions. The query is processed only  
+                                         over the 'faqId'  FAQ.
+     findClosest(self,query : str,  K : int = 3 , topSimilar : int = 5) -> List[FAQOutput] : The same as findClosestFromFAQ, but here the query is run over all the,  
+                                        FAQs and the result is a list of FAQOutputs , the length of the list is the same as the number of FAQs.
+                                            
 
 ## Adding your own producers(sentence_generator)
 The quality of the FAQ is directely related to the quality of questions produced, As such Bani comes with a default  
