@@ -97,7 +97,9 @@ The class that acts as the chatbot , It registers any number of FAQs , trains a 
                                          over the 'faqId'  FAQ.
      findClosest(self,query : str,  K : int = 3 , topSimilar : int = 5) -> List[FAQOutput] : The same as findClosestFromFAQ, but here the query is run over all the,  
                                         FAQs and the result is a list of FAQOutputs , the length of the list is the same as the number of FAQs.
-
+     
+     test(self,faqId : int,testData : List[Tuple[str,str]], K : int = 3) -> float:    Interface to test any given faq , expects a list of tuples of size 2
+                                        first element is the orignal question and second is the paraphrased version. All the orignal question should ideally match the                                                 questions in the FAQ , if not you will be warned about it.
 
 
 #### FAQOutput
