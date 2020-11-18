@@ -1,8 +1,9 @@
+from logging import warn, warning
 from typing import List, Union, Dict, Tuple
 import os
 import numpy as np
 from .exceptions import *
-from .generation import GenerateManager
+from .generation import GenerateManager , IdentityProducer
 import pickle
 
 
@@ -79,6 +80,10 @@ def processRaw(questions : List[str], answers : List[str]) -> Tuple[List[Questio
     # Now two or more questions may have the same answer !!! ,How ever it is not recommended !!!
     # You can add your own augmentations later !!!
 
+    questions = [q.strip().lower() for q in questions]
+    answers = [a.strip().lower() for a in answers]
+
+
 
     a2L = dict()
     label = 0
@@ -90,6 +95,10 @@ def processRaw(questions : List[str], answers : List[str]) -> Tuple[List[Questio
 
     l2Q : Dict[int, Question] = dict()
     for question, answer in zip(questions,answers):
+        # Apply the text transformations here 
+
+
+
         label = a2L[answer]
 
         if(label in l2Q):
@@ -297,6 +306,8 @@ class FAQ:
         Will generate questions , and then the vectorrep of each question, 
         WILL NOT SAVE , MUST CALL SAVE 
         """
+        if(generator is None):
+            generator = GenerateManager(producers= [IdentityProducer()], names= ["IdentityProducer"],nums= [1])
 
         if(self.isEmpty()):
             raise AttemptedUsingEmptyFAQ()
@@ -392,6 +403,12 @@ class FAQOutput:
         self.score = score
         self.similarQuestions = similarQuestions
         self.maxScore = maxScore
+
+
+
+    def __str__(self):
+        out = self
+        return "faqName - {}\n\nanswer - {}\n\nquestion - {}\n\nmaxScore - {}\n\nscore - {}\n\n{}\n\n{}".format(out.faqName,out.answer.text,out.question.text,out.maxScore,out.score,"="*50,out.similarQuestions)
 
 
 

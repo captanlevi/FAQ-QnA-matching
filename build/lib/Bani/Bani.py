@@ -2,6 +2,7 @@ import os
 from typing import List, Tuple, Dict
 
 from numpy.testing._private.utils import assert_raises
+import sentence_transformers
 from .core.FAQ import Answer, FAQ, Question , FAQUnit, FAQOutput
 import numpy as np
 from sentence_transformers.readers import InputExample
@@ -102,12 +103,13 @@ class FAQWrapper:
 
 
 class Bani:
-    def __init__(self,FAQs : List[FAQ], modelPath : str = None):
+    def __init__(self,FAQs : List[FAQ], modelPath : str = None, assignVectors : bool = True):
         if(modelPath == None):
             modelPath = 'roberta-base-nli-stsb-mean-tokens'
-        self.model : SentenceTransformer = SentenceTransformer(modelPath)
+        self.model : SentenceTransformer = self._getModel(modelPath)
         self.FAQs : List[FAQWrapper] = []
         self.idToFAQ : Dict[int,FAQWrapper] = dict()
+        self.assignVectors = assignVectors
 
         self._registerFAQs(FAQs = FAQs)
 
@@ -126,11 +128,18 @@ class Bani:
         
 
         for faq in FAQs:
-            if(faq.hasVectorsAssigned()):
+            if(faq.hasVectorsAssigned() == True  and self.assignVectors == False):
                 warnings.warn("Vectors already assigned to {} FAQ , if you want to reassign using the current model please clear the vectors using resetAssigned vectors".format(faq.name))
-            else:
-                print("Assigning vectors to {} faq".format(faq.name))
+            elif(faq.hasVectorsAssigned() == True and self.assignVectors == True):
+                print("OverWritting the vectors of FAQ named {} , it will name save the generated vectors , to do that use the saveFAQ/s feature".format(faq.name))
                 faq._assignVectors(model = self.model)
+            elif(faq.hasVectorsAssigned() == False and self.assignVectors == True):
+                print("Assigning vectors to {} faq , , it will name save the generated vectors , to do that use the saveFAQ/s feature".format(faq.name))
+                faq._assignVectors(model = self.model)
+            else:
+                raise VectorNotAssignedException("assignVectors is False , but the vectors are not stored in faq named {}".format(faq.name))
+                
+               
 
 
         id = 0
@@ -141,7 +150,8 @@ class Bani:
             id += 1
 
 
-    def findClosest(self,query : str,  K : int = 3 , topSimilar : int = 5) -> FAQOutput:
+
+    def findClosest(self,query : str,  K : int = 3 , topSimilar : int = 5) -> List[FAQOutput]:
         """
         Here we find the closest from each faq and then compare of the 
         top contenders from different faqs are not dangerouusly similar
@@ -168,12 +178,13 @@ class Bani:
 
 
 
-    def train(self,outputPath : str, batchSize = 16, epochs : int = 1, **kwargs):
+    def train(self,outputPath : str,batchSize = 16, epochs : int = 1, **kwargs):
         """
         Trains the model using batch hard triplet loss , 
         for the other kwargs take a look at the documentation for sentencetransformers
         """
-        assert batchSize > 4 and epochs > 0 and os.path.exists(outputPath)
+        os.makedirs(outputPath, exist_ok=True)
+        assert batchSize > 4 and epochs > 0
         trainingObjectives = [] # training each faq on a different objective
         for faq in self.FAQs:
             trainExamples = convertForBatchHardTripletLoss(faq.FAQ)
@@ -182,14 +193,28 @@ class Bani:
             trainLoss = losses.BatchHardTripletLoss(model= self.model)
             trainingObjectives.append((trainDataloader, trainLoss))
 
-        self.model.fit(train_objectives=  trainingObjectives, warmup_steps= 100,epochs= epochs, save_best_model= False,
-            output_path= outputPath, **kwargs)
+        self.model.fit(train_objectives=  trainingObjectives, warmup_steps= 100,epochs= epochs, save_best_model= False,output_path= outputPath, **kwargs)
+        self.saveModel(outputPath)
+        self.model = SentenceTransformer(outputPath)
+        for faq in self.FAQs:
+            print("Assigning vectors from the trained model to FAQ {}".format(faq.FAQ.name))
+            faq.FAQ._assignVectors(self.model)
 
+
+
+    def getFAQWithId(self, id : int) -> FAQ:
+        if(id not in self.idToFAQ):
+            raise KeyError("FAQ with id {} does not exist".format(id))
+
+        return self.idToFAQ[id].FAQ
 
     def saveModel(self, path):
         os.makedirs(path, exist_ok=True)
         self.model.save(path)
 
+
+    def _getModel(self, path):
+        return SentenceTransformer(path)
 
     def saveFAQs(self, rootDirPath : str):
         for faq in self.FAQs:

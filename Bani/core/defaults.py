@@ -7,6 +7,6 @@ from ..generation.sentAug.sentAug import AUG
 from .generation import GenerateManager
 
 defaultNames  = ["SymSub", "FPM", "EDA", "nlpAug"]
-defaultNums = [1,1,1,1]
+defaultNums = [2,3,2,2]
 
 defaultGenerateManager = GenerateManager(producers= [SymSubGenerator(dummyEN("lite")),FPMGenerator(),EDAGenerator(), AUG()], names= defaultNames,nums= defaultNums)

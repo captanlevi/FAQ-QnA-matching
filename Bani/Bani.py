@@ -171,13 +171,58 @@ class Bani:
 
          
     def findClosestFromFAQ(self,faqId : int, query : str, K : int = 3, topSimilar : int = 5) -> FAQOutput:
-        assert faqId in self.idToFAQ
+        assert faqId in self.idToFAQ , "The id {} not in faqId only {} are available".format(faqId,list(self.idToFAQ.keys()))
         faq = self.idToFAQ[faqId]
         queryVector = self.model.encode([query])[0].reshape(1,-1)
         return faq.solveForQuery(queryVector= queryVector, K = K,topSimilar= topSimilar)
 
 
+    def _tester(self,faqId : int, questions : List[str],  labels : List[int] , K : int = 3):
+        correct = 0
+        for question, label in zip(questions,labels):
+            answer = self.findClosestFromFAQ(faqId,question)
+            if(answer.question.label == label):
+                correct += 1
 
+        return correct/len(questions)
+
+
+
+    def test(self,faqId : int,testData : List[Tuple[str,str]], K : int = 3) -> float:
+        """
+        Interface to test any given faq , expects a list of tuples of size 2
+        first element is the orignal question and second is the paraphrased version.
+        All the orignal question should ideally match the questions in the FAQ
+        """
+        assert faqId in self.idToFAQ , "The id {} not in faqId only {} are available".format(faqId,list(self.idToFAQ.keys()))
+        questions : List[str] = []
+        labels : List[str] = []
+
+        nonMatched : List[str] = []
+        testFAQ = self.idToFAQ[faqId].FAQ
+        for testPoint in testData:
+            orignal = testPoint[0]
+            reframed = testPoint[1]
+            flag = 0
+            for unit in testFAQ.FAQ:
+                if(unit.orignal.text.strip().lower() == orignal.strip().lower()):
+                    questions.append(reframed)
+                    labels.append(unit.label)
+                    flag = 1
+                    break
+            if(flag == 0):
+                nonMatched.append(orignal)
+
+        if(nonMatched):
+            warnings.warn("{} questions in the test set did not match any orignal questions".format(len(nonMatched)))
+
+        print("Running test on {} questions".format(len(questions)))
+        return self._tester(faqId= faqId,questions= questions, labels= labels,K= K)
+
+
+    
+    
+    
     def train(self,outputPath : str,batchSize = 16, epochs : int = 1, **kwargs):
         """
         Trains the model using batch hard triplet loss , 

@@ -1,5 +1,5 @@
 from logging import warning
-from typing import Any, List, Union, Dict
+from typing import Any, List, Union, Dict, Tuple
 import warnings
 
 
@@ -73,6 +73,8 @@ class GenerateManager:
             for i in range(len(producers)):
                 names.append("generator" + str(i))
         
+        assert len(names) == len(set(names)) , "The names of generators must be unique !!!"
+
         if(nums is None):
             nums = [10 for i in range(len(producers))]
 
@@ -80,6 +82,35 @@ class GenerateManager:
         self.generators : List[QuestionGenerator] = [QuestionGenerator(name= names[i],producer= producers[i], num =  nums[i]) for i in range(len(producers))]
 
 
+    def removeProducer(self, name):
+        preNames = [generator.name for generator in self.generators]
+        if(name not in preNames):
+            raise ValueError("A producer with name {} does not exists exists".format(name))
+        newGenerators : List[QuestionGenerator] = []
+        for generator in self.generators:
+            if(generator.name != name):
+                newGenerators.append(generator)
+        self.generators = newGenerators
+
+    
+    def addProducer(self,producer , name : str , toGenerate : int):
+        preNames = [generator.name for generator in self.generators]
+        if(name in preNames):
+            raise ValueError("A producer with name {} already exists".format(name))
+        newGenerator = QuestionGenerator(name= name, producer= producer,num= toGenerate)
+        self.generators.append(newGenerator)
+
+    
+    def producerList(self) -> Tuple[List[str],List[int],List[Any]]:
+        names = []
+        nums = []
+        producers = [] 
+        for generator in self.generators:
+            names.append(generator.name)
+            nums.append(generator.num)
+            producers.append(generator.producer)
+        
+        return names, nums , producers
     def generate(self, questions : List[str]) -> List[List[str]]:
         """
         takes the questions given , and uses the generators to generate.
