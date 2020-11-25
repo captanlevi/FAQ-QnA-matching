@@ -118,7 +118,7 @@ def convertForContrastiveLoss(FAQ : FAQ , minSameLabels : int = 2, numIters : in
 
 
 
-def convertForSoftMaxLoss(FAQ : FAQ):
+def convertForSoftmaxLoss(FAQ : FAQ):
     """
     This loss adds an softmax layer on top of the sentence transformer
     """
@@ -141,16 +141,16 @@ def convertForSoftMaxLoss(FAQ : FAQ):
         labelToQuestions[lossLabel].append(unit.question.text)
 
 
-    
 
     inputs = []
 
+    for label , questions in labelToQuestions.items():
+        for question in questions:
+            inputs.append(InputExample(texts= [question], label= label))
     
+    random.shuffle(inputs)
+    return inputs , len(labelToQuestions)
 
-    for label, positives in labelToQuestions.items():
-        for i in range(len(positives)):
-            for j in range(i+1, len(positives)):
-                s1,s2 = positives[i], positives[j]
 
 
 

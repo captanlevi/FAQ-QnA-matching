@@ -2,7 +2,6 @@ import os
 from typing import List, Tuple, Dict
 
 from numpy.testing._private.utils import assert_raises
-import sentence_transformers
 from .core.FAQ import Answer, FAQ, Question , FAQUnit, FAQOutput
 import numpy as np
 from sentence_transformers.readers import InputExample
@@ -229,7 +228,6 @@ class Bani:
         for the other kwargs take a look at the documentation for sentencetransformers
         """
         os.makedirs(outputPath, exist_ok=True)
-        assert batchSize > 4 and epochs > 0
         trainingObjectives = [] # training each faq on a different objective
         
         for faq in self.FAQs:

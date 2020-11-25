@@ -38,5 +38,7 @@ Bani/generation/rajat_work/qgen/util/nlp.py
 Bani/generation/sentAug/__init__.py
 Bani/generation/sentAug/sentAug.py
 Bani/modelRelated/__init__.py
+Bani/modelRelated/batchHardDataset.py
 Bani/modelRelated/config.py
+Bani/modelRelated/lossHandler.py
 Bani/modelRelated/utils.py
