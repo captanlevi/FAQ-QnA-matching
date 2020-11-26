@@ -236,7 +236,7 @@ class Bani:
             trainLoss = lossInstance.trainLoss
             trainingObjectives.append((trainDataloader, trainLoss))
 
-        self.model.fit(train_objectives=  trainingObjectives, warmup_steps= 100,epochs= epochs, save_best_model= False,output_path= outputPath, **kwargs)
+        self.model.fit(train_objectives=  trainingObjectives,epochs= epochs, save_best_model= False,output_path= outputPath, **kwargs)
         self.saveModel(outputPath)
         self.model = SentenceTransformer(outputPath)
         for faq in self.FAQs:

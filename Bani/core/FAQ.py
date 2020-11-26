@@ -162,7 +162,7 @@ class FAQ:
         includedSet = set()
         for question in self.questions:
             if(question.label in includedSet):
-                raise WrongInputDataException("(ONLY FOR FAQ CLASS ERROR)Label for each question must be unique, found atleast 2 questions with same label")
+                raise WrongInputDataException("(ONLY FOR FAQ CLASS ERROR, this should be resolved in the processRaw method)Label for each question must be unique, found atleast 2 questions with same label")
             includedSet.add(question.label)
 
         answerlabelsSet = set()

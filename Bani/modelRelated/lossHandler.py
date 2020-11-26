@@ -14,12 +14,12 @@ class LossHandler:
         assert lossName in supportedLosses  , "Error {} loss not supported , supported losses are {}".format(lossName, supportedLosses)
 
         if(lossName == supportedLosses[0]):
-            assert batchSize > 4 and batchSize%4 == 0, "needed for the pk sampler (p ,k > 2)"
+            assert batchSize > 8 and batchSize%8 == 0, "needed for the pk sampler (p ,k > 2), must give large batches for batch hard"
 
             self.trainExamples = convertForBatchHardTripletLoss(FAQ= FAQ)
             self.dataset = BatchHardDataset(examples = self.trainExamples , model = model)
             self.trainLoss = losses.BatchHardTripletLoss(model= model)
-            sampler = PKSampler(dataSource= self.dataset, p = 4 , k = batchSize//4)
+            sampler = PKSampler(dataSource= self.dataset, p = 8 , k = batchSize//8)
             self.trainDataLoader =  DataLoader(self.dataset, batch_size= batchSize, sampler= sampler)
         elif(lossName == supportedLosses[1]):
             assert batchSize > 4 and batchSize%4 == 0, "needed for good contrastive loss"

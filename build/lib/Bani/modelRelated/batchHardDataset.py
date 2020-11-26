@@ -8,14 +8,6 @@ from torch.utils.data.sampler import Sampler
 import torch
 
 
-
-
-
-
-
-
-
-
 class BatchHardDataset(Dataset):
     def __init__(self, examples : List[InputExample],  model):
         for example in examples:

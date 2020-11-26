@@ -40,5 +40,7 @@ Bani/generation/sentAug/sentAug.py
 Bani/modelRelated/__init__.py
 Bani/modelRelated/batchHardDataset.py
 Bani/modelRelated/config.py
+Bani/modelRelated/customLosses.py
 Bani/modelRelated/lossHandler.py
+Bani/modelRelated/softmaxDataset.py
 Bani/modelRelated/utils.py
