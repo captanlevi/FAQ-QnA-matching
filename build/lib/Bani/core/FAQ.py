@@ -5,7 +5,7 @@ import numpy as np
 from .exceptions import *
 from .generation import GenerateManager , IdentityProducer
 import pickle
-
+import re
 
 
 
@@ -15,6 +15,11 @@ import pickle
 class Sentence:
     def __init__(self, text : str):
         self.text = text
+
+    def key(self):
+        return self.text.strip().lower()
+
+
 
     
 
@@ -80,26 +85,26 @@ def processRaw(questions : List[str], answers : List[str]) -> Tuple[List[Questio
     # Now two or more questions may have the same answer !!! ,How ever it is not recommended !!!
     # You can add your own augmentations later !!!
 
-    questions = [q.strip().lower() for q in questions]
-    answers = [a.strip().lower() for a in answers]
+    questions = [q.strip() for q in questions]
+    answers = [a.strip() for a in answers]
 
 
 
     a2L = dict()
     label = 0
+    outAnswers = []
     for answer in answers:
-        if(answer not in a2L):
-            a2L[answer] = label
+        answer_lowered = answer.lower()
+        if(answer_lowered not in a2L):
+            a2L[answer_lowered] = label
+            outAnswers.append(Answer(label= label , text=  answer))
             label += 1
     
 
     l2Q : Dict[int, Question] = dict()
     for question, answer in zip(questions,answers):
         # Apply the text transformations here 
-
-
-
-        label = a2L[answer]
+        label = a2L[answer.lower()]
 
         if(label in l2Q):
             # HAndeling if multiple question map to the same answer !!!
@@ -109,13 +114,6 @@ def processRaw(questions : List[str], answers : List[str]) -> Tuple[List[Questio
             l2Q[label] = Question(label= label, text = question)
            # print(label)
            # print(l2Q[label].orignalParaPhrases)
-
-
-
-    outAnswers = []
-    for answer , label in a2L.items():
-        outAnswers.append(Answer(label= label , text=  answer))
-
     
     outQuestions = list(l2Q.values())
 
