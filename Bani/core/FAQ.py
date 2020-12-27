@@ -92,10 +92,12 @@ def processRaw(questions : List[str], answers : List[str]) -> Tuple[List[Questio
 
     a2L = dict()
     label = 0
+    outAnswers = []
     for answer in answers:
-        answer = answer.lower()
-        if(answer not in a2L):
-            a2L[answer] = label
+        answer_lowered = answer.lower()
+        if(answer_lowered not in a2L):
+            a2L[answer_lowered] = label
+            outAnswers.append(Answer(label= label , text=  answer))
             label += 1
     
 
@@ -112,14 +114,6 @@ def processRaw(questions : List[str], answers : List[str]) -> Tuple[List[Questio
             l2Q[label] = Question(label= label, text = question)
            # print(label)
            # print(l2Q[label].orignalParaPhrases)
-
-
-
-    outAnswers = []
-    for answer in answers:
-        label = a2L[answer.lower()]
-        outAnswers.append(Answer(label= label , text=  answer))
-
     
     outQuestions = list(l2Q.values())
 
