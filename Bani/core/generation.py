@@ -28,14 +28,14 @@ class QuestionGenerator:
             result_dict = self.producer.exact_batch_generate(questions,self.num)
         else:
             result_dict = self.producer.batch_generate(questions)
+
         if(result_dict is None):
             answer = dict()
             for q in questions:
                 answer[q] = []
             return answer
-
-        for orignal_question in result_dict:
-            result_dict[orignal_question] = result_dict[orignal_question][:self.num]
+        # for orignal_question in result_dict:
+        #     result_dict[orignal_question] = result_dict[orignal_question][:self.num]
 
         return result_dict
 

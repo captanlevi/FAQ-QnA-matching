@@ -43,7 +43,7 @@ class FAQUnit:
         assert question.label == orignal.label, "label for orignal and current question must be same"
         self.id = id
         self.question = question
-        self.orignal = orignal
+        self.original = orignal
         self.answer = answer
         self.vectorRep = None  # To be assigned later using a model
         self.label = question.label
@@ -54,7 +54,7 @@ class FAQUnit:
         return True
 
     def __str__(self) -> str:
-        return "Question ---> {}\nAnswer --->{}\n".format(self.question, self.answer)
+        return f"Question ---> {self.question}\nAnswer --->{self.answer}\n"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -213,21 +213,21 @@ class FAQ:
 
         tempFAQ = []
         idCount = 0
-        for orignalQuestion, paraphrases in zip(self.questions, generatedQuestions):
-            label = orignalQuestion.label
+        for originalQuestion, paraphrases in zip(self.questions, generatedQuestions):
+            label = originalQuestion.label
             answer = self.getAnswerWithLabel(label)
 
-            tempFAQ.append(FAQUnit(idCount, orignalQuestion, orignalQuestion, answer=answer))
+            tempFAQ.append(FAQUnit(idCount, originalQuestion, originalQuestion, answer=answer))
             idCount += 1
 
-            for parphrase in paraphrases:
-                question = Question(label=label, text=parphrase)
-                tempFAQ.append(FAQUnit(id=idCount, question=question, orignal=orignalQuestion, answer=answer))
+            for paraphrase in paraphrases:
+                question = Question(label=label, text=paraphrase)
+                tempFAQ.append(FAQUnit(id=idCount, question=question, orignal=originalQuestion, answer=answer))
                 idCount += 1
 
-            for orignalParaphrase in orignalQuestion.orignalParaPhrases:
-                question = Question(label=label, text=orignalParaphrase)
-                tempFAQ.append(FAQUnit(id=idCount, question=question, orignal=orignalQuestion, answer=answer))
+            for originalParaphrase in originalQuestion.orignalParaPhrases:
+                question = Question(label=label, text=originalParaphrase)
+                tempFAQ.append(FAQUnit(id=idCount, question=question, orignal=originalQuestion, answer=answer))
                 idCount += 1
 
         self.FAQ = tempFAQ

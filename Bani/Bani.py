@@ -160,13 +160,14 @@ class Bani:
         return faq.solveForQuery(queryVector=queryVector, K=K, topSimilar=topSimilar)
 
     def _tester(self, faqId: int, questions: List[str], labels: List[int], K: int = 3):
+        #TODO pass in the original questions as well
         correct = 0
         for question, label in zip(questions, labels):
             answer = self.findClosestFromFAQ(faqId, question)
             if (answer.question.label == label):
                 correct += 1
-
-        return correct / len(questions)
+        #TODO log down the question that failed
+        return correct, len(questions)
 
     def test(self, faqId: int, testData: List[Tuple[str, str]], K: int = 3) -> float:
         """
@@ -192,6 +193,7 @@ class Bani:
                     flag = 1
                     break
             if (flag == 0):
+                #TODO log down the original question
                 nonMatched.append(orignal)
 
         if (nonMatched):
