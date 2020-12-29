@@ -3,3 +3,5 @@ __pycache__/
 broken_english/
 .ipynb_checkpoints/
 .vscode/
+API_token.txt
+pyvenv/
