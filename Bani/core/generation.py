@@ -34,8 +34,9 @@ class QuestionGenerator:
             for q in questions:
                 answer[q] = []
             return answer
-        # for orignal_question in result_dict:
-        #     result_dict[orignal_question] = result_dict[orignal_question][:self.num]
+        
+        for orignal_question in result_dict:
+            result_dict[orignal_question] = result_dict[orignal_question][:self.num]
 
         return result_dict
 
