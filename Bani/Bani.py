@@ -1,8 +1,10 @@
 import os
 import warnings
 from typing import List, Tuple, Dict
+from tqdm import tqdm
 
 import numpy as np
+import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 from .core.FAQ import FAQ, FAQOutput
@@ -159,17 +161,35 @@ class Bani:
         queryVector = self.model.encode([query])[0].reshape(1, -1)
         return faq.solveForQuery(queryVector=queryVector, K=K, topSimilar=topSimilar)
 
-    def _tester(self, faqId: int, questions: List[str], labels: List[int], K: int = 3):
-        #TODO pass in the original questions as well
+    def _tester(self, faqId: int, questions: List[str], original_questions: List[str], labels: List[int], K: int = 3):
         correct = 0
-        for question, label in zip(questions, labels):
+        wrong_questions = []
+        for question, label, original_question in zip(questions, labels, original_questions):
             answer = self.findClosestFromFAQ(faqId, question)
             if (answer.question.label == label):
                 correct += 1
-        #TODO log down the question that failed
-        return correct, len(questions)
+            else:
+                # tuple of "Test Question", "Target Question", "Predicted Question", "Score", "Top 5 similar questions",
+                # "Target Label", "Predicted Label
+                wrong_questions.append((question, original_question, answer.question.text, answer.score,
+                                        answer.similarQuestions, label, answer.question.label))
+        return correct, wrong_questions
 
-    def test(self, faqId: int, testData: List[Tuple[str, str]], K: int = 3) -> float:
+    def test(self, faqId: int, testData: List[Tuple[str, str]], K: int = 3, isDebug: bool = False):
+        questions_to_test, labels_to_test, original_questions, unmatched_questions = self.filter_test_questions(faqId,
+                                                                                                                testData)
+        correct_count, wrong_questions = self._tester(faqId, questions_to_test, original_questions, labels_to_test, K)
+        if isDebug:
+            # write unmatched_questions and wrong_questions into csv
+            unmatched_file = "unmatched_questions" + ".csv"
+            pd.DataFrame({"Unmatched Questions": unmatched_questions}).to_csv(unmatched_file, index= False)
+
+            wrong_question_file = "wrong_questions" + ".csv"
+            pd.DataFrame(wrong_questions, columns=["Test Question", "Target Question", "Predicted Question", "Score",
+                                                   "Top 5", "Target Label", "Predicted Label"]).to_csv(wrong_question_file, index=False)
+        return correct_count, len(questions_to_test)
+
+    def filter_test_questions(self, faqId: int, testData: List[Tuple[str, str]]):
         """
         Interface to test any given faq , expects a list of tuples of size 2
         first element is the orignal question and second is the paraphrased version.
@@ -178,7 +198,8 @@ class Bani:
         assert faqId in self.idToFAQ, "The id {} not in faqId only {} are available".format(faqId,
                                                                                             list(self.idToFAQ.keys()))
         questions: List[str] = []
-        labels: List[str] = []
+        original_q: List[str] = []
+        labels: List[int] = []
 
         nonMatched: List[str] = []
         testFAQ = self.idToFAQ[faqId].FAQ
@@ -189,18 +210,19 @@ class Bani:
             for unit in testFAQ.FAQ:
                 if (unit.orignal.text.strip().lower() == orignal.strip().lower()):
                     questions.append(reframed)
+                    original_q.append(orignal)
                     labels.append(unit.label)
                     flag = 1
                     break
             if (flag == 0):
-                #TODO log down the original question
                 nonMatched.append(orignal)
 
         if (nonMatched):
             warnings.warn("{} questions in the test set did not match any orignal questions".format(len(nonMatched)))
 
         print("Running test on {} questions".format(len(questions)))
-        return self._tester(faqId=faqId, questions=questions, labels=labels, K=K)
+        return questions, labels, original_q, nonMatched
+        # return self._tester(faqId=faqId, questions=questions, original_q = original_q,labels=labels, K=K)
 
     def train(self, outputPath: str, batchSize=16, epochs: int = 1, lossName: str = "batchHardTriplet", **kwargs):
         """
