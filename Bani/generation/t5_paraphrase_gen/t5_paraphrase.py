@@ -54,6 +54,8 @@ class T5Generator(BaseGenerator):
         self.can_model = SentenceTransformer(can_model_path)
         self.original_sentences = []
 
+        self.inconsistent_sentences = []
+
     def _load_model(self, model_path):
         model = T5ForConditionalGeneration.from_pretrained(model_path)
         model = model.to(self.device)
@@ -104,12 +106,39 @@ class T5Generator(BaseGenerator):
         self.original_sentences = sentences
 
         results = dict()
+        # seen_questions used to clean up duplicates across and within label. Each label points to a unique FAQ pair.
+        seen_questions = [sentence for sentence in sentences]
         for sentence in tqdm(sentences):
-            sentences_generated = self.generate_special(sentence)
-            results[sentence] = sentences_generated
+            if not self._check_inconsistent(sentence):
+                sentences_generated = self.generate_with_processing(sentence)
+            else:
+                self.inconsistent_sentences.append(sentence)
+                sentences_generated = self.generate(sentence)
+
+            # 4a. Preparation for Candidate Paraphrase Selection
+            similarity_scores = [self._similarity_score(sentence, paraphrase) for paraphrase in sentences_generated]
+            positions = self._get_positions(sentence, sentences_generated)
+
+            assert len(similarity_scores) == len(sentences_generated)
+            assert len(positions) == len(sentences_generated)
+
+            # 4b. Passing paraphrase through 2-step selection process & Sort by Descending Score
+            paraphrase_score_tuples = []
+            for paraphrase, score, position in zip(sentences_generated, similarity_scores, positions):
+                if paraphrase not in seen_questions:
+                    if float(score) >= 4.0 and int(position) in [1]:
+                        paraphrase_score_tuples.append((paraphrase, score, position))
+                    seen_questions.append(paraphrase)
+
+            # Sort by descending score
+            paraphrase_score_tuples.sort(key=lambda x: x[1], reverse=True)
+            candidate_paraphrases = [pst_tuple[0] for pst_tuple in paraphrase_score_tuples]
+
+            # results[sentence] = sentences_generated
+            results[sentence] = candidate_paraphrases
         return results
 
-    def generate_special(self, sentence):
+    def generate_with_processing(self, sentence):
         abbrevs = get_abbreviation_dict(sentence)
         new_abbrevs = abbrevs
         # new_abbrevs = {key + "_1": value for key, value in abbrevs.items()}
@@ -124,11 +153,7 @@ class T5Generator(BaseGenerator):
         for sentence_gen in sentences_generated:
             sentence_return.append(self._post_process(sentence_gen, new_abbrevs))
 
-        # 4. Candidate Paraphrase Selection
-        candidate_paraphrases = self._candidate_selection(sentence, sentence_return)
-
-        return candidate_paraphrases
-        # return sentence_return
+        return sentence_return
 
     def _candidate_selection(self, original, generated_paraphrases,
                              lower_bound=4.0, position_choices=[1]):
@@ -178,7 +203,7 @@ class T5Generator(BaseGenerator):
         for paraphrase, score in zip(final_can_paraphrases, final_can_paraphrases_score):
             paraphrase_and_score.append((paraphrase, score))
 
-        paraphrase_and_score.sort(key=lambda x: x[1])
+        paraphrase_and_score.sort(key=lambda x: x[1], reverse=True)
 
         selected_paraphrases = []
         for paraphrase_score_tuple in paraphrase_and_score:
@@ -199,6 +224,24 @@ class T5Generator(BaseGenerator):
 
         score = cosine_scores[0][0] * 5
         return round(float(score), 2)
+
+    def _get_positions(self, original, candidate_paraphrases):
+        corpus = self.original_sentences
+        corpus_embeddings = self.can_model.encode(corpus, convert_to_tensor=True)
+        positions = []
+        for paraphrase in candidate_paraphrases:
+            query = [paraphrase]
+            top_k = min(5, len(corpus))
+            query_embedding = self.can_model.encode(query, convert_to_tensor=True)
+
+            # We use cosine-similarity and torch.topk to find the highest 5 scores
+            cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+            top_results = torch.topk(cos_scores, k=top_k)
+
+            corpus_matches = [corpus[idx] for idx in top_results[1]]
+            positions.append(self.check_position(corpus_matches, original))
+
+        return positions
 
     @staticmethod
     def check_position(corpus_matches, original):
@@ -242,3 +285,28 @@ class T5Generator(BaseGenerator):
         else:
             res = sentence_return
         return res
+
+    def _save_intermediate_output(self, saveAll, outputPath, outputName):
+        import csv
+        import os
+        with open(outputName + ".csv", mode='w') as new_csv:
+            csv_writer = csv.writer(new_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for row in saveAll:
+                csv_writer.writerow([row[0], row[1], row[2], row[3]])
+
+        os.rename(outputName + ".csv", os.path.join(outputPath, outputName + ".csv"))
+
+    def _check_inconsistent(self, question):
+        from nltk.tokenize import word_tokenize
+        abbrev_dict = get_abbreviation_dict(question)
+        question_tokens = word_tokenize(question)
+
+        if abbrev_dict:
+            for abbrev in abbrev_dict.keys():
+                abbrev_str = "(" + abbrev + ")"
+                abbrev_str_count = question.count(abbrev_str)
+                count = question_tokens.count(abbrev)
+
+                if count != abbrev_str_count:
+                    return True
+        return False
