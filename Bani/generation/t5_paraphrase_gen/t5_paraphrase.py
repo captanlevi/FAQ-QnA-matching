@@ -4,7 +4,7 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from sentence_transformers import SentenceTransformer, util
 
 from .abbreviation_helper \
-    import get_abbreviation_dict, remove_abbreviation_expansion, reinstate_abbreviation_expansion
+    import get_abbreviation_dict, remove_abbreviation_expansion, reinstate_abbreviation_expansion, check_inconsistent
 from ..rajat_work.qgen.generator.base import BaseGenerator
 
 
@@ -109,7 +109,7 @@ class T5Generator(BaseGenerator):
         # seen_questions used to clean up duplicates across and within label. Each label points to a unique FAQ pair.
         seen_questions = [sentence for sentence in sentences]
         for sentence in tqdm(sentences):
-            if not self._check_inconsistent(sentence):
+            if not check_inconsistent(sentence):
                 sentences_generated = self.generate_with_processing(sentence)
             else:
                 self.inconsistent_sentences.append(sentence)
@@ -296,17 +296,17 @@ class T5Generator(BaseGenerator):
 
         os.rename(outputName + ".csv", os.path.join(outputPath, outputName + ".csv"))
 
-    def _check_inconsistent(self, question):
-        from nltk.tokenize import word_tokenize
-        abbrev_dict = get_abbreviation_dict(question)
-        question_tokens = word_tokenize(question)
-
-        if abbrev_dict:
-            for abbrev in abbrev_dict.keys():
-                abbrev_str = "(" + abbrev + ")"
-                abbrev_str_count = question.count(abbrev_str)
-                count = question_tokens.count(abbrev)
-
-                if count != abbrev_str_count:
-                    return True
-        return False
+    # def _check_inconsistent(self, question):
+    #     from nltk.tokenize import word_tokenize
+    #     abbrev_dict = get_abbreviation_dict(question)
+    #     question_tokens = word_tokenize(question)
+    #
+    #     if abbrev_dict:
+    #         for abbrev in abbrev_dict.keys():
+    #             abbrev_str = "(" + abbrev + ")"
+    #             abbrev_str_count = question.count(abbrev_str)
+    #             count = question_tokens.count(abbrev)
+    #
+    #             if count != abbrev_str_count:
+    #                 return True
+    #     return False

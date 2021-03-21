@@ -14,6 +14,7 @@ def get_abbreviation_dict(sentences):
                                                                                   most_common_definition=True)
     return abbreviation_dict
 
+
 def find_all_abbreviations(sentence, abbrevs):
     tokens_text = word_tokenize(sentence)
     abbrev_data = []
@@ -77,3 +78,24 @@ def reinstate_abbreviation_expansion(sentence, abbrevs):
     result_tokens.extend(tokens_text[start:])
 
     return TreebankWordDetokenizer().detokenize(result_tokens)
+
+
+def check_inconsistent(question):
+    """
+    This method checks for inconsistent usage of domain-specific terms
+    For example, "My spouse is the nominated CDA Trustee and I have applied for the Baby Bonus Scheme.
+                  How can I open the Child Development Account (CDA) for my child?"
+    -> CDA inconsistently referred to using Child Development Account (CDA) and CDA
+    """
+    abbrev_dict = get_abbreviation_dict(question)
+    question_tokens = word_tokenize(question)
+
+    if abbrev_dict:
+        for abbrev in abbrev_dict.keys():
+            abbrev_str = "(" + abbrev + ")"
+            abbrev_str_count = question.count(abbrev_str)
+            count = question_tokens.count(abbrev)
+
+            if count != abbrev_str_count:
+                return True
+    return False
