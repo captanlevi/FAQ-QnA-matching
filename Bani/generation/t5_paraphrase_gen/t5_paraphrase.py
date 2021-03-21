@@ -296,17 +296,3 @@ class T5Generator(BaseGenerator):
 
         os.rename(outputName + ".csv", os.path.join(outputPath, outputName + ".csv"))
 
-    # def _check_inconsistent(self, question):
-    #     from nltk.tokenize import word_tokenize
-    #     abbrev_dict = get_abbreviation_dict(question)
-    #     question_tokens = word_tokenize(question)
-    #
-    #     if abbrev_dict:
-    #         for abbrev in abbrev_dict.keys():
-    #             abbrev_str = "(" + abbrev + ")"
-    #             abbrev_str_count = question.count(abbrev_str)
-    #             count = question_tokens.count(abbrev)
-    #
-    #             if count != abbrev_str_count:
-    #                 return True
-    #     return False
