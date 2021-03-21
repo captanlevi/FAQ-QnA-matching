@@ -4,7 +4,7 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from sentence_transformers import SentenceTransformer, util
 
 from .abbreviation_helper \
-    import get_abbreviation_dict, remove_abbreviation_expansion, reinstate_abbreviation_expansion
+    import get_abbreviation_dict, remove_abbreviation_expansion, reinstate_abbreviation_expansion, check_inconsistent
 from ..rajat_work.qgen.generator.base import BaseGenerator
 
 
@@ -53,6 +53,8 @@ class T5Generator(BaseGenerator):
         # Load for candidate paraphrase selection
         self.can_model = SentenceTransformer(can_model_path)
         self.original_sentences = []
+
+        self.inconsistent_sentences = []
 
     def _load_model(self, model_path):
         model = T5ForConditionalGeneration.from_pretrained(model_path)
@@ -104,12 +106,40 @@ class T5Generator(BaseGenerator):
         self.original_sentences = sentences
 
         results = dict()
+        # seen_questions used to clean up duplicates across and within label. Each label points to a unique FAQ pair.
+        seen_questions = [sentence for sentence in sentences]
         for sentence in tqdm(sentences):
-            sentences_generated = self.generate_special(sentence)
-            results[sentence] = sentences_generated
+            if not check_inconsistent(sentence):
+                sentences_generated = self.generate_with_processing(sentence)
+            else:
+                self.inconsistent_sentences.append(sentence)
+                sentences_generated = self.generate(sentence)
+
+            # 4a. Preparation for Candidate Paraphrase Selection
+            similarity_scores = [self._similarity_score(sentence, paraphrase) for paraphrase in sentences_generated]
+            positions = self._get_positions(sentence, sentences_generated)
+
+            assert len(similarity_scores) == len(sentences_generated)
+            assert len(positions) == len(sentences_generated)
+
+            # 4b. Passing paraphrase through 2-step selection process & Sort by Descending Score
+            paraphrase_score_tuples = []
+            for paraphrase, score, position in zip(sentences_generated, similarity_scores, positions):
+                if paraphrase not in seen_questions:
+                    # 2-Step Selection Process
+                    if float(score) >= 4.0 and int(position) in [1]:
+                        paraphrase_score_tuples.append((paraphrase, score, position))
+                    seen_questions.append(paraphrase)
+
+            # Sort by descending score
+            paraphrase_score_tuples.sort(key=lambda x: x[1], reverse=True)
+            candidate_paraphrases = [pst_tuple[0] for pst_tuple in paraphrase_score_tuples]
+
+            # results[sentence] = sentences_generated
+            results[sentence] = candidate_paraphrases
         return results
 
-    def generate_special(self, sentence):
+    def generate_with_processing(self, sentence):
         abbrevs = get_abbreviation_dict(sentence)
         new_abbrevs = abbrevs
         # new_abbrevs = {key + "_1": value for key, value in abbrevs.items()}
@@ -124,31 +154,45 @@ class T5Generator(BaseGenerator):
         for sentence_gen in sentences_generated:
             sentence_return.append(self._post_process(sentence_gen, new_abbrevs))
 
-        # 4. Candidate Paraphrase Selection
-        candidate_paraphrases = self._candidate_selection(sentence, sentence_return)
-
-        return candidate_paraphrases
-        # return sentence_return
+        return sentence_return
 
     def _candidate_selection(self, original, generated_paraphrases,
                              lower_bound=4.0, position_choices=[1]):
 
         # Step 1: Filter by Similarity Scores
         similarity_scores = [self._similarity_score(original, paraphrase) for paraphrase in generated_paraphrases]
+        positions = self._get_positions(original, generated_paraphrases)
 
-        candidate_paraphrases = []
-        candidate_paraphrases_score = []
-        for paraphrase, score in zip(generated_paraphrases, similarity_scores):
-            if original.lower() == paraphrase.lower() and paraphrase not in candidate_paraphrases:
-                print(f"Removing original.lower() == paraphrase.lower() for original:{original}")
-                continue
+        assert len(similarity_scores) == len(generated_paraphrases)
+        assert len(positions) == len(generated_paraphrases)
 
-            score_float = float(score)
-            if score_float >= lower_bound:
-                candidate_paraphrases.append(paraphrase)
-                candidate_paraphrases_score.append(score_float)
+        # 4b. Passing paraphrase through 2-step selection process & Sort by Descending Score
+        paraphrase_score_tuples = []
+        for paraphrase, score, position in zip(generated_paraphrases, similarity_scores, positions):
+            if float(score) >= float(lower_bound) and int(position) in position_choices:
+                paraphrase_score_tuples.append((paraphrase, score, position))
 
-        # Step 2: Filter by the position of original in top-5 most similar questions when compared to paraphrase
+        # Sort by descending score
+        paraphrase_score_tuples.sort(key=lambda x: x[1], reverse=True)
+        candidate_paraphrases = [pst_tuple[0] for pst_tuple in paraphrase_score_tuples]
+
+        return candidate_paraphrases
+
+    def _similarity_score(self, original, paraphrase):
+        sentences1 = [original]
+        sentences2 = [paraphrase]
+
+        # Compute embedding for both lists
+        embeddings1 = self.can_model.encode(sentences1, convert_to_tensor=True)
+        embeddings2 = self.can_model.encode(sentences2, convert_to_tensor=True)
+
+        # Compute cosine-similarities
+        cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)
+
+        score = cosine_scores[0][0] * 5
+        return round(float(score), 2)
+
+    def _get_positions(self, original, candidate_paraphrases):
         corpus = self.original_sentences
         corpus_embeddings = self.can_model.encode(corpus, convert_to_tensor=True)
         positions = []
@@ -164,41 +208,7 @@ class T5Generator(BaseGenerator):
             corpus_matches = [corpus[idx] for idx in top_results[1]]
             positions.append(self.check_position(corpus_matches, original))
 
-        final_can_paraphrases = []
-        final_can_paraphrases_score = []
-        for paraphrase, position, score in zip(candidate_paraphrases, positions,candidate_paraphrases_score):
-            position = int(position)
-            if position in position_choices:
-                final_can_paraphrases.append(paraphrase)
-                # For later sorting via score
-                final_can_paraphrases_score.append(score)
-
-        # Sorting via score
-        paraphrase_and_score = []
-        for paraphrase, score in zip(final_can_paraphrases, final_can_paraphrases_score):
-            paraphrase_and_score.append((paraphrase, score))
-
-        paraphrase_and_score.sort(key=lambda x: x[1])
-
-        selected_paraphrases = []
-        for paraphrase_score_tuple in paraphrase_and_score:
-            selected_paraphrases.append(paraphrase_score_tuple[0])
-
-        return selected_paraphrases
-
-    def _similarity_score(self, original, paraphrase):
-        sentences1 = [original]
-        sentences2 = [paraphrase]
-
-        # Compute embedding for both lists
-        embeddings1 = self.can_model.encode(sentences1, convert_to_tensor=True)
-        embeddings2 = self.can_model.encode(sentences2, convert_to_tensor=True)
-
-        # Compute cosine-similarities
-        cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)
-
-        score = cosine_scores[0][0] * 5
-        return round(float(score), 2)
+        return positions
 
     @staticmethod
     def check_position(corpus_matches, original):
@@ -242,3 +252,14 @@ class T5Generator(BaseGenerator):
         else:
             res = sentence_return
         return res
+
+    def _save_intermediate_output(self, saveAll, outputPath, outputName):
+        import csv
+        import os
+        with open(outputName + ".csv", mode='w') as new_csv:
+            csv_writer = csv.writer(new_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for row in saveAll:
+                csv_writer.writerow([row[0], row[1], row[2], row[3]])
+
+        os.rename(outputName + ".csv", os.path.join(outputPath, outputName + ".csv"))
+
