@@ -126,6 +126,7 @@ class T5Generator(BaseGenerator):
             paraphrase_score_tuples = []
             for paraphrase, score, position in zip(sentences_generated, similarity_scores, positions):
                 if paraphrase not in seen_questions:
+                    # 2-Step Selection Process
                     if float(score) >= 4.0 and int(position) in [1]:
                         paraphrase_score_tuples.append((paraphrase, score, position))
                     seen_questions.append(paraphrase)
@@ -160,56 +161,22 @@ class T5Generator(BaseGenerator):
 
         # Step 1: Filter by Similarity Scores
         similarity_scores = [self._similarity_score(original, paraphrase) for paraphrase in generated_paraphrases]
+        positions = self._get_positions(original, generated_paraphrases)
 
-        candidate_paraphrases = []
-        candidate_paraphrases_score = []
-        for paraphrase, score in zip(generated_paraphrases, similarity_scores):
-            if original.lower() == paraphrase.lower() and paraphrase not in candidate_paraphrases:
-                print(f"Removing original.lower() == paraphrase.lower() for original:{original}")
-                continue
+        assert len(similarity_scores) == len(generated_paraphrases)
+        assert len(positions) == len(generated_paraphrases)
 
-            score_float = float(score)
-            if score_float >= lower_bound:
-                candidate_paraphrases.append(paraphrase)
-                candidate_paraphrases_score.append(score_float)
+        # 4b. Passing paraphrase through 2-step selection process & Sort by Descending Score
+        paraphrase_score_tuples = []
+        for paraphrase, score, position in zip(generated_paraphrases, similarity_scores, positions):
+            if float(score) >= float(lower_bound) and int(position) in position_choices:
+                paraphrase_score_tuples.append((paraphrase, score, position))
 
-        # Step 2: Filter by the position of original in top-5 most similar questions when compared to paraphrase
-        corpus = self.original_sentences
-        corpus_embeddings = self.can_model.encode(corpus, convert_to_tensor=True)
-        positions = []
-        for paraphrase in candidate_paraphrases:
-            query = [paraphrase]
-            top_k = min(5, len(corpus))
-            query_embedding = self.can_model.encode(query, convert_to_tensor=True)
+        # Sort by descending score
+        paraphrase_score_tuples.sort(key=lambda x: x[1], reverse=True)
+        candidate_paraphrases = [pst_tuple[0] for pst_tuple in paraphrase_score_tuples]
 
-            # We use cosine-similarity and torch.topk to find the highest 5 scores
-            cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
-            top_results = torch.topk(cos_scores, k=top_k)
-
-            corpus_matches = [corpus[idx] for idx in top_results[1]]
-            positions.append(self.check_position(corpus_matches, original))
-
-        final_can_paraphrases = []
-        final_can_paraphrases_score = []
-        for paraphrase, position, score in zip(candidate_paraphrases, positions,candidate_paraphrases_score):
-            position = int(position)
-            if position in position_choices:
-                final_can_paraphrases.append(paraphrase)
-                # For later sorting via score
-                final_can_paraphrases_score.append(score)
-
-        # Sorting via score
-        paraphrase_and_score = []
-        for paraphrase, score in zip(final_can_paraphrases, final_can_paraphrases_score):
-            paraphrase_and_score.append((paraphrase, score))
-
-        paraphrase_and_score.sort(key=lambda x: x[1], reverse=True)
-
-        selected_paraphrases = []
-        for paraphrase_score_tuple in paraphrase_and_score:
-            selected_paraphrases.append(paraphrase_score_tuple[0])
-
-        return selected_paraphrases
+        return candidate_paraphrases
 
     def _similarity_score(self, original, paraphrase):
         sentences1 = [original]
