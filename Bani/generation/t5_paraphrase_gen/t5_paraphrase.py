@@ -6,6 +6,7 @@ from sentence_transformers import SentenceTransformer, util
 from .abbreviation_helper \
     import get_abbreviation_dict, remove_abbreviation_expansion, reinstate_abbreviation_expansion, check_inconsistent
 from ..rajat_work.qgen.generator.base import BaseGenerator
+from .paraphrase_helper import check_position, download_t5_model_if_not_present
 
 
 def set_seed(seed):
@@ -23,7 +24,7 @@ class T5Generator(BaseGenerator):
     """
 
     def __init__(self,
-                 model_path="ramsrigouthamg/t5_paraphraser",
+                 model_path="t5_qqp",
                  top_p=0.98, num_return=11, max_len=128, top_k=120, is_early_stopping=True,
                  can_model_path="paraphrase-distilroberta-base-v1"):
         """
@@ -54,9 +55,16 @@ class T5Generator(BaseGenerator):
         self.can_model = SentenceTransformer(can_model_path)
         self.original_sentences = []
 
+        # These two arrays are used for debugging/logging purposes.
         self.inconsistent_sentences = []
+        self.not_generated_sentences = []
 
     def _load_model(self, model_path):
+        import os
+        if model_path == "t5_qqp":
+            model_path = os.path.join(os.getcwd(), "Bani", "generation", "t5_paraphrase_gen", "models", model_path)
+            download_t5_model_if_not_present(model_path)
+
         model = T5ForConditionalGeneration.from_pretrained(model_path)
         model = model.to(self.device)
         return model
@@ -73,10 +81,9 @@ class T5Generator(BaseGenerator):
 
     def generate(self, sentence):
         """
-        Generate paraphrases for a given sentence
+        Generate paraphrases for a given sentence. Note: No pre and post processing involved here.
 
         :param str sentence: Original sentence used for generating its paraphrases
-
         """
         text = "paraphrase: " + sentence + "</s>"
         encoding = self.tokenizer.encode_plus(text, padding='max_length', return_tensors="pt")
@@ -104,6 +111,9 @@ class T5Generator(BaseGenerator):
     def batch_generate(self, sentences):
         # For use in candidate_selection method
         self.original_sentences = sentences
+        # Reset variables storing inconsistent and not generated sentences
+        self.inconsistent_sentences = []
+        self.not_generated_sentences = []
 
         results = dict()
         # seen_questions used to clean up duplicates across and within label. Each label points to a unique FAQ pair.
@@ -137,12 +147,17 @@ class T5Generator(BaseGenerator):
 
             # results[sentence] = sentences_generated
             results[sentence] = candidate_paraphrases
+            if len(candidate_paraphrases) == 0:
+                self.not_generated_sentences.append(sentence)
         return results
 
     def generate_with_processing(self, sentence):
+        """
+        This function is the main function for generating the paraphrases for the given sentence (with pre and post processing)
+        An alternative to this function is generate(self,sentence), that does not perform any pre or post processing.
+        """
         abbrevs = get_abbreviation_dict(sentence)
         new_abbrevs = abbrevs
-        # new_abbrevs = {key + "_1": value for key, value in abbrevs.items()}
         # 1. Pre Processing
         sentence_ready = self._preprocess(sentence, new_abbrevs)
 
@@ -156,9 +171,55 @@ class T5Generator(BaseGenerator):
 
         return sentence_return
 
+    def _similarity_score(self, original, paraphrase):
+        """
+        Helper function for candidate selection step 1.
+        """
+        sentences1 = [original]
+        sentences2 = [paraphrase]
+
+        # Compute embedding for both lists
+        embeddings1 = self.can_model.encode(sentences1, convert_to_tensor=True, show_progress_bar=False)
+        embeddings2 = self.can_model.encode(sentences2, convert_to_tensor=True, show_progress_bar=False)
+
+        # Compute cosine-similarities
+        cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)
+
+        score = cosine_scores[0][0] * 5
+        return round(float(score), 2)
+
+    def _get_positions(self, original, candidate_paraphrases):
+        """
+        Helper function for candidate selection step 2.
+        """
+        corpus = self.original_sentences
+        corpus_embeddings = self.can_model.encode(corpus, convert_to_tensor=True, show_progress_bar=False)
+        positions = []
+        for paraphrase in candidate_paraphrases:
+            query = [paraphrase]
+            top_k = min(5, len(corpus))
+            query_embedding = self.can_model.encode(query, convert_to_tensor=True, show_progress_bar=False)
+
+            # We use cosine-similarity and torch.topk to find the highest 5 scores
+            cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+            top_results = torch.topk(cos_scores, k=top_k)
+
+            corpus_matches = [corpus[idx] for idx in top_results[1]]
+            positions.append(check_position(corpus_matches, original))
+
+        return positions
+
     def _candidate_selection(self, original, generated_paraphrases,
                              lower_bound=4.0, position_choices=[1]):
-
+        """
+        This method is used by adhoc_generate() only (and possible debug_generate()).
+        In batch generation, similar logic is used, with some modifications
+        :param original: Original sentence used for generating its paraphrases
+        :param generated_paraphrases: List of paraphrases generated
+        :param lower_bound: Value for 1st step of candidate selection process
+        :param position_choices: List of positions to accept in 2nd step of candidate selection process
+        :return:
+        """
         # Step 1: Filter by Similarity Scores
         similarity_scores = [self._similarity_score(original, paraphrase) for paraphrase in generated_paraphrases]
         positions = self._get_positions(original, generated_paraphrases)
@@ -178,55 +239,74 @@ class T5Generator(BaseGenerator):
 
         return candidate_paraphrases
 
-    def _similarity_score(self, original, paraphrase):
-        sentences1 = [original]
-        sentences2 = [paraphrase]
+    def adhoc_generate(self, input_question, generate_n_paraphrases, keep_top_k_paraphrases, original_questions=None):
+        """
+        Use this function if you are only generating paraphrases for one question, for debugging or for actual usage.
+        :param str input_question: The question from which paraphrases are generated from. It should come from the input_file, if given
+        :param int generate_n_paraphrases: The total number of paraphrases to generate for the given input_question
+        :param int keep_top_k_paraphrases: Out of the total number of paraphrases generated, retain the top k paraphrases
+        :param original_questions: Optional input for candidate selection step 2. Array of original questions from the clean FAQ dataset.
+        :output candidate_paraphrases: A list of candidate paraphrases that the user can now use.
+        """
+        assert generate_n_paraphrases >= keep_top_k_paraphrases
 
-        # Compute embedding for both lists
-        embeddings1 = self.can_model.encode(sentences1, convert_to_tensor=True, show_progress_bar=False)
-        embeddings2 = self.can_model.encode(sentences2, convert_to_tensor=True, show_progress_bar=False)
+        if original_questions is None:
+            self.original_sentences = [input_question]
+        else:
+            self.original_sentences = original_questions
+        self.num_return = generate_n_paraphrases
+        if not check_inconsistent(input_question):
+            paraphrases_generated = self.generate_with_processing(input_question)
+        else:
+            paraphrases_generated = self.generate(input_question)
 
-        # Compute cosine-similarities
-        cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)
+        candidate_paraphrases = self._candidate_selection(input_question, paraphrases_generated)
+        candidate_paraphrases = candidate_paraphrases[:keep_top_k_paraphrases]
 
-        score = cosine_scores[0][0] * 5
-        return round(float(score), 2)
+        return candidate_paraphrases
 
-    def _get_positions(self, original, candidate_paraphrases):
-        corpus = self.original_sentences
-        corpus_embeddings = self.can_model.encode(corpus, convert_to_tensor=True, show_progress_bar=False)
+    def find_similar_questions_within_faq(self, faq_questions):
+        """
+        Use this function if you wish to print out pairs of similar questions you have in the array of faq_questions.
+        :param List[str] faq_questions:  Format is [qn 1, qn 2, qn 3, ..., qn n]. Each qn will be compared with every other question in the list.
+        """
+        embedder = self.can_model
+
+        # Corpus with example sentences
+        corpus = faq_questions
+        corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True, show_progress_bar=False)
+
+        queries = faq_questions
         positions = []
-        for paraphrase in candidate_paraphrases:
-            query = [paraphrase]
-            top_k = min(5, len(corpus))
-            query_embedding = self.can_model.encode(query, convert_to_tensor=True, show_progress_bar=False)
+        # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
+        top_k = min(5, len(corpus))
+        found_pairs = []
+        for ind, query in enumerate(queries):
+            query_embedding = embedder.encode(query, convert_to_tensor=True, show_progress_bar=False)
 
             # We use cosine-similarity and torch.topk to find the highest 5 scores
             cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
             top_results = torch.topk(cos_scores, k=top_k)
 
-            corpus_matches = [corpus[idx] for idx in top_results[1]]
-            positions.append(self.check_position(corpus_matches, original))
-
-        return positions
-
-    @staticmethod
-    def check_position(corpus_matches, original):
-        # Return 1,2,3,4,5 for their respective position of the query_original_q in corpus_matches
-        # Return -1 if not found
-        for ind, match in enumerate(corpus_matches):
-            if match.lower() == original.lower():
-                return ind + 1
-        return -1
+            for score, idx in zip(top_results[0][1:], top_results[1][1:]):
+                if float(score) >= 0.9:
+                    if sorted([query, corpus[int(idx)]]) not in found_pairs:
+                        print(f"Question: {query}")
+                        print(f"Similar: {corpus[int(idx)]}")
+                        print(f"({round(float(score), 2)}) or ({round(float(score) * 5, 2)})")
+                        print("\n")
+                        found_pairs.append(sorted([query, corpus[int(idx)]]))
 
     def debug_generate(self, sentence, is_preprocess=True, is_postprocess=True,
                        is_select=True, lower_bound=4.0, position_choices=[1]):
+        """
+        Modify this function to your debugging preferences. It should not be used in actual data augmentation.
+        """
         sentence_ready = sentence
 
         print(f"Generating for: {sentence_ready}")
         if is_preprocess:
             abbrevs = get_abbreviation_dict(sentence)
-            # new_abbrevs = {key + "_1": value for key, value in abbrevs.items()}
             print(f"is_preprocess=True: \nabbrevs:{abbrevs},\nnew_abbrevs:{abbrevs}\n")
             sentence_ready = self._preprocess(sentence, abbrevs)
             print(f"After pre-processing, it becomes: {sentence_ready}")
@@ -252,14 +332,3 @@ class T5Generator(BaseGenerator):
         else:
             res = sentence_return
         return res
-
-    def _save_intermediate_output(self, saveAll, outputPath, outputName):
-        import csv
-        import os
-        with open(outputName + ".csv", mode='w') as new_csv:
-            csv_writer = csv.writer(new_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            for row in saveAll:
-                csv_writer.writerow([row[0], row[1], row[2], row[3]])
-
-        os.rename(outputName + ".csv", os.path.join(outputPath, outputName + ".csv"))
-

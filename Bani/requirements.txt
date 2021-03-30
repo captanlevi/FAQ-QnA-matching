@@ -11,3 +11,5 @@ regex==2020.7.14
 PyYAML==5.3.1
 common==0.1.2
 typing==3.7.4.3
+gdown==3.10.1
+transformers==3.3.1
