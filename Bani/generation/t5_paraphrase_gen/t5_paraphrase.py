@@ -239,27 +239,21 @@ class T5Generator(BaseGenerator):
 
         return candidate_paraphrases
 
-    def adhoc_generate(self, input_question, generate_n_paraphrases, keep_top_k_paraphrases, input_file=None):
+    def adhoc_generate(self, input_question, generate_n_paraphrases, keep_top_k_paraphrases, original_questions=None):
         """
         Use this function if you are only generating paraphrases for one question, for debugging or for actual usage.
         :param str input_question: The question from which paraphrases are generated from. It should come from the input_file, if given
         :param int generate_n_paraphrases: The total number of paraphrases to generate for the given input_question
         :param int keep_top_k_paraphrases: Out of the total number of paraphrases generated, retain the top k paraphrases
-        :param input_file: Optional input for candidate selection step 2. It should have two columns for question and answers, with no headers
+        :param original_questions: Optional input for candidate selection step 2. Array of original questions from the clean FAQ dataset.
         :output candidate_paraphrases: A list of candidate paraphrases that the user can now use.
         """
-        from .paraphrase_helper import extract_qa_from_csv
         assert generate_n_paraphrases >= keep_top_k_paraphrases
 
-        if input_file is None:
+        if original_questions is None:
             self.original_sentences = [input_question]
-            print(self.original_sentences)
         else:
-            # give full path to the input file (that is in csv format)
-            questions, answers = extract_qa_from_csv(input_file)
-            assert len(questions) == len(answers)
-
-            self.original_sentences = questions
+            self.original_sentences = original_questions
         self.num_return = generate_n_paraphrases
         if not check_inconsistent(input_question):
             paraphrases_generated = self.generate_with_processing(input_question)
